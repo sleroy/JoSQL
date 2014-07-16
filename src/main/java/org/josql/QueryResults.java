@@ -14,9 +14,9 @@
  */
 package org.josql;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 /**
  * This class holds all the "result" information about the execution of a particular
@@ -33,28 +33,56 @@ public class QueryResults
     Map saveValues = new HashMap ();
     Map timings = null;
     List results = null;
-    List whereResults = null;
+    
+    public Map getGroupBySaveValues() {
+		return groupBySaveValues;
+	}
+
+	public void setGroupBySaveValues(final Map _groupBySaveValues) {
+		groupBySaveValues = _groupBySaveValues;
+	}
+
+	public List<Result> getGlobalResults() {
+		return globalResults;
+	}
+
+	public void setGlobalResults(final List<Result> _globalResults) {
+		globalResults = _globalResults;
+	}
+
+	public void setResults(final List _results) {
+		results = _results;
+	}
+
+	public void setGroupByResults(final Map _groupByResults) {
+		groupByResults = _groupByResults;
+	}
+
+	List whereResults = null;
     List havingResults = null;
     Map groupByResults = null;
 
     Map groupBySaveValues = null;
+    
+    List<Result> globalResults;
+    
 
     public QueryResults ()
     {
 
     }
 
-    public Map getGroupBySaveValues (List k)
+    public Map getGroupBySaveValues (final List k)
     {
 
-	if (this.groupBySaveValues == null)
+	if (groupBySaveValues == null)
 	{
 
 	    return null;
 
 	}
 
-	return (Map) this.groupBySaveValues.get (k);
+	return (Map) groupBySaveValues.get (k);
 
     }
 
@@ -66,7 +94,7 @@ public class QueryResults
     public Map getSaveValues ()
     {
 
-	return this.saveValues;
+	return saveValues;
 
     }
 
@@ -79,7 +107,7 @@ public class QueryResults
     public Object getSaveValue (Object id)
     {
 
-	if (this.saveValues == null)
+	if (saveValues == null)
 	{
 
 	    return null;
@@ -93,7 +121,7 @@ public class QueryResults
 
 	}
 
-	return this.saveValues.get (id);
+	return saveValues.get (id);
 
     }
 
@@ -106,8 +134,14 @@ public class QueryResults
     public List getResults ()
     {
 
-	return this.results;
+	return results;
 
+    }
+    
+    public List<Result> getResultsAsList() {
+    	
+    	return globalResults;
+    	
     }
 
     /**
@@ -118,7 +152,7 @@ public class QueryResults
     public Map getTimings ()
     {
 
-	return this.timings;
+	return timings;
 
     }
 
@@ -130,7 +164,7 @@ public class QueryResults
     public Map getGroupByResults ()
     {
 
-	return this.groupByResults;
+	return groupByResults;
 
     }    
 
@@ -142,7 +176,7 @@ public class QueryResults
     public List getHavingResults ()
     {
 
-	return this.havingResults;
+	return havingResults;
 
     }
 
@@ -154,7 +188,7 @@ public class QueryResults
     public List getWhereResults ()
     {
 
-	return this.whereResults;
+	return whereResults;
 
     }
 

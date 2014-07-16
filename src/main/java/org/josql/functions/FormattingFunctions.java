@@ -15,7 +15,6 @@
 package org.josql.functions;
 
 import java.util.Date;
-
 import java.text.SimpleDateFormat;
 import java.text.DecimalFormat;
 
@@ -24,7 +23,7 @@ import com.gentlyweb.utils.Timing;
 import com.gentlyweb.utils.Getter;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 public class FormattingFunctions extends AbstractFunctionHandler
 {

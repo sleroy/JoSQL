@@ -17,14 +17,12 @@ package org.josql.functions;
 import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
-
 import java.util.List;
 import java.util.ArrayList;
 
+import org.josql.exceptions.QueryExecutionException;
 import org.josql.functions.regexp.RegExpFactory;
 import org.josql.functions.regexp.RegExp;
-
-import org.josql.QueryExecutionException;
 
 /**
  * This class holds functions that operate on strings in some way.

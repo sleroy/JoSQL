@@ -21,12 +21,9 @@ import java.util.Iterator;
 
 import com.gentlyweb.utils.Getter;
 
-import org.josql.QueryExecutionException;
-
 import org.josql.internal.Utilities;
-
+import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.Expression;
-
 import org.josql.Query;
 
 public class GroupingFunctions extends AbstractFunctionHandler

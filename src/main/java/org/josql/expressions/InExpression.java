@@ -21,9 +21,8 @@ import java.util.Map;
 import java.util.Iterator;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
-
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.internal.Utilities;
 
 /**

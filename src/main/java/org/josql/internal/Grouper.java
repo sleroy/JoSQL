@@ -20,8 +20,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-
+import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.Expression;
 
 public class Grouper 

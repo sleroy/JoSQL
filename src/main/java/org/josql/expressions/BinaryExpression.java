@@ -15,8 +15,8 @@
 package org.josql.expressions;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * Super-class of Expressions that return a binary result.

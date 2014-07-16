@@ -18,9 +18,8 @@ import java.util.List;
 import java.util.Comparator;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
-import org.josql.QueryExecutionException;
-
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.internal.ListExpressionComparator;
 
 /**

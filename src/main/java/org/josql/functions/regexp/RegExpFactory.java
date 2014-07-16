@@ -3,7 +3,7 @@ package org.josql.functions.regexp;
 import java.util.Map;
 import java.util.HashMap;
 
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 public class RegExpFactory
 {
