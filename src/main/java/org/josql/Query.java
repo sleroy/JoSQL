@@ -1009,80 +1009,10 @@ public class Query
     	process.execute(objs, objClass);
     	
     	return qd;
-    	
-    	/*
-	if ((objs == null)
-	    &&
-	    (objClass != null)
-	   )
-	{
-
-	    throw new QueryExecutionException ("List of objects must be non-null when an object class is specified.");
-
-	}
-
-	qd = new QueryResults ();
-
-	if ((objClass == null)
-	    &&
-	    (objs == null)
-	   )
-	{
-
-	    objs = Query.nullQueryList;
-
-	}
-
-	allObjects = objs;
-
-	// See if we have any expressions that are to be executed on 
-	// the complete set.
-	doExecuteOn (objs,
-		          Query.ALL);
-
-        evalWhereClause ();
-
-	// See if we have any functions that are to be executed on 
-	// the results...
-        doExecuteOn (qd.results,
-                          Query.RESULTS);
-
-	// If we have a "having" clause execute it here...
-        evalHavingClause ();
-
-	// Now perform the group by operation.
-        if (grouper != null)
-        {
-            
-            evalGroupByClause ();
-            
-            return qd;
-        
-        }
-
-	// Now perform the order by.
-        evalOrderByClause ();
-
-	// Finally, if we have a limit clause, restrict the set of objects returned...
-        evalLimitClause ();
-
-        evalSelectClause ();
-
-	try
-	{
-
-	    return qd;
-
-	} finally {
-
-	    // Clean up ;)
-	    clearResults ();
-
-	}*/
 
     }
 
-    protected void evalSelectClause ()
+    /*protected void evalSelectClause ()
                                    throws QueryExecutionException
     {
         
@@ -1178,7 +1108,7 @@ public class Query
 
 	}        
         
-    }
+    }*/
 
     protected void evalOrderByClause ()
                                     throws QueryExecutionException
@@ -2422,7 +2352,7 @@ public class Query
         
     }
 
-    public void init ()
+    public void init()
                       throws QueryParseException
     {
 

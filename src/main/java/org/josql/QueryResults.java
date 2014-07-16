@@ -138,7 +138,17 @@ public class QueryResults
 
     }
     
-    public List<Result> getResultsAsList() {
+    public List<Result> asList() {
+    	
+    	if (globalResults == null) {
+    	
+    		if (groupByResults != null) {
+    			globalResults = ResultFactory.createGroupByResult(groupByResults);
+    		}else{
+    			globalResults = ResultFactory.createResults(results);
+    		}
+    		
+    	}
     	
     	return globalResults;
     	

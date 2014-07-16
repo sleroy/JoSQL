@@ -3,6 +3,9 @@ package net.sf.josql;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +54,7 @@ public class AppTest {
 		
 		System.out.println(result.getResults());
 		
-		List<Result> results = result.getResultsAsList();
+		List<Result> results = result.asList();
 		
 		@SuppressWarnings("unchecked")
 		List<?> expectedResults = Lists.newArrayList(
@@ -64,16 +67,40 @@ public class AppTest {
 			assertTrue(expectedResults.contains(row.getList()));
 		}
 		
-		/*System.out.println(result.getGroupByResults());
-
-		for(Object k : result.getGroupByResults().keySet()) {
-
-			List<?> list1 = (List<?>) result.getGroupByResults().get(k);
-			List<?> list2 = (List<String>) list1.get(0); 
-			Number value = (Number) list2.get(1);
-			System.out.println(list2.get(0) + " " + value);
-			
-		}*/
+	}
+	
+	@Test
+	public void testOrderBy() throws QueryParseException, QueryExecutionException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, superviser, time "
+				+ "FROM net.sf.josql.Work "
+				+ "ORDER BY time ASC");
+		QueryResults result = q.execute(works);
+		System.out.println(result.getResults());
+		List<Result> results = result.asList();
+		
+		List<Work> sortedWorks = Lists.newArrayList();
+		sortedWorks.addAll(works);
+		Collections.sort(sortedWorks, new Comparator<Work>() {
+			public int compare(Work o1, Work o2) {
+				if (o1.getTime() < o2.getTime()) {
+					return -1;
+				}
+				if (o1.getTime() > o2.getTime()) {
+					return 1;
+				}
+				return 0;
+			}		
+		});
+		
+		for(int i=0; i<sortedWorks.size(); i++) {
+			Work expectedWork = sortedWorks.get(i);
+			System.out.println(expectedWork.getWorker().getName()+" "+expectedWork.getTime());
+			assertEquals(expectedWork.getWorker(), results.get(i).getList().get(0));
+			assertEquals(expectedWork.getSuperviser(), results.get(i).getList().get(1));
+			assertEquals(expectedWork.getTime(), results.get(i).getList().get(2));
+		}
 		
 	}
 	

@@ -2,6 +2,9 @@ package org.josql;
 
 import java.util.List;
 
+import javax.management.QueryEval;
+
+import org.josql.evaluators.OrderByClauseEvaluator;
 import org.josql.evaluators.QueryEvaluator;
 import org.josql.evaluators.SelectClauseEvaluator;
 import org.josql.exceptions.QueryExecutionException;
@@ -59,6 +62,8 @@ public class QueryExecutor {
 	    }else{
 
 	    	// Now perform the order by.
+//	    	QueryEvaluator orderByClauseEvaluator = new OrderByClauseEvaluator();
+//	    	orderByClauseEvaluator.evaluate(query);
 	        query.evalOrderByClause ();
 
 	        // Finally, if we have a limit clause, restrict the set of objects returned...
@@ -69,7 +74,7 @@ public class QueryExecutor {
 //	        query.evalSelectClause ();
 	        
 	        // Clean up ;)
-		    query.clearResults ();
+		    //query.clearResults ();
 
 	    }
 		
