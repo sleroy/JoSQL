@@ -62,9 +62,9 @@ public class QueryExecutor {
 	    }else{
 
 	    	// Now perform the order by.
-//	    	QueryEvaluator orderByClauseEvaluator = new OrderByClauseEvaluator();
-//	    	orderByClauseEvaluator.evaluate(query);
-	        query.evalOrderByClause ();
+	    	QueryEvaluator orderByClauseEvaluator = new OrderByClauseEvaluator();
+	    	orderByClauseEvaluator.evaluate(query);
+//	        query.evalOrderByClause ();
 
 	        // Finally, if we have a limit clause, restrict the set of objects returned...
 	        query.evalLimitClause ();
