@@ -1,4 +1,4 @@
-https://travis-ci.org/sleroy/JoSQL.svg?branch=master
+[![Build Status](https://travis-ci.org/sleroy/JoSQL.svg?branch=master)](https://travis-ci.org/sleroy/JoSQL)
 
 Experimental version forked from Barry Gently's project at http://josql.sourceforge.net/ 
 
