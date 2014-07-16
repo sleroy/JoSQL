@@ -30,7 +30,7 @@ public class QueryResults
 {
 
     // Execution data.
-    Map saveValues = new HashMap ();
+    Map saveValues = null;
     Map timings = null;
     List results = null;
     
@@ -107,7 +107,7 @@ public class QueryResults
     public Object getSaveValue (Object id)
     {
 
-	if (saveValues == null)
+	if (getSaveValues() == null)
 	{
 
 	    return null;
@@ -121,7 +121,7 @@ public class QueryResults
 
 	}
 
-	return saveValues.get (id);
+	return getSaveValues().get (id);
 
     }
 
@@ -201,5 +201,9 @@ public class QueryResults
 	return whereResults;
 
     }
+
+	public void setSaveValues(Map saveValues) {
+		this.saveValues = saveValues;
+	}
 
 }

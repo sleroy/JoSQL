@@ -147,7 +147,7 @@ public class Query
     private List groupBys = null;
     private Comparator orderByComp = null;
     private Comparator groupOrderByComp = null;
-    protected Grouper grouper = null;
+	protected Grouper grouper = null;
     private List orderBys = null;
     private List groupOrderBys = null;
     protected List cols = null;
@@ -1032,7 +1032,7 @@ public class Query
             List grpBys = new ArrayList (mres.keySet ());
 
             // Convert the keys in the group by to a List.
-            Map origSvs = qd.saveValues;
+            Map origSvs = qd.getSaveValues();
 
             Map nres = new LinkedHashMap ();
 
@@ -1060,17 +1060,17 @@ public class Query
 
                 }
 
-                qd.saveValues = new HashMap ();
+                qd.setSaveValues(new HashMap ());
 
                 if (origSvs != null)
                 {
 
-                    qd.saveValues.putAll (origSvs);
+                    qd.getSaveValues().putAll (origSvs);
                     
                 }
 
                 qd.groupBySaveValues.put (l,
-                                               qd.saveValues);
+                                               qd.getSaveValues());
 
                 // Now execute all (any) group by results functions.
                 doExecuteOn (lr,
@@ -1148,7 +1148,7 @@ public class Query
             }
 
             // Restore the save values.
-            qd.saveValues = origSvs;
+            qd.setSaveValues(origSvs);
 
             // Set the group by results.
             qd.groupByResults = nres;
@@ -1164,13 +1164,13 @@ public class Query
             if (groupOrderByComp != null)
             {
 
-                origSvs = qd.saveValues;
+                origSvs = qd.getSaveValues();
 
                 Collections.sort (grpBys,
                                   groupOrderByComp);
 
                 // "Restore" the save values.
-                qd.saveValues = origSvs;
+                qd.setSaveValues(origSvs);
 
                 GroupByExpressionComparator lec = (GroupByExpressionComparator) groupOrderByComp;
 
@@ -1222,7 +1222,7 @@ public class Query
                             System.currentTimeMillis () - s);
 
             // "Restore" the save values.
-            qd.saveValues = origSvs;
+            qd.setSaveValues(origSvs);
 
             qd.results = grpBys;
             
@@ -1242,7 +1242,7 @@ public class Query
                     allObjects = lr;
                     currGroupBys = l;
             
-                    qd.saveValues = (Map) qd.groupBySaveValues.get (l);
+                    qd.setSaveValues((Map) qd.groupBySaveValues.get (l));
                         
                     qd.groupByResults.put (l,
                                                 limit.getSubList (lr,
@@ -1252,7 +1252,7 @@ public class Query
 
             }
 
-            qd.saveValues = origSvs;
+            qd.setSaveValues(origSvs);
 
         } catch (Exception e) {
 
@@ -1598,9 +1598,9 @@ public class Query
 
 	}
 
-	Object old = qd.saveValues.get (id);
+	Object old = qd.getSaveValues().get (id);
 
-	qd.saveValues.put (id,
+	qd.getSaveValues().put (id,
 				value);
 
 	if (old != null)
@@ -1759,7 +1759,7 @@ public class Query
 
 	if ((qd == null)
 	    ||
-	    (qd.saveValues == null)
+	    (qd.getSaveValues() == null)
 	   )
 	{
 
@@ -1774,7 +1774,7 @@ public class Query
 
 	}
 
-	return qd.saveValues.get (id);
+	return qd.getSaveValues().get (id);
 
     }
 
@@ -2989,5 +2989,9 @@ public class Query
         return q.execute (objs);
         
     }
+    
+    public Comparator getGroupOrderByComp() {
+		return groupOrderByComp;
+	}
 
 }

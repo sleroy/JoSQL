@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+import org.josql.ColumnValuesExtractor;
 import org.josql.Query;
 import org.josql.QueryResults;
 import org.josql.exceptions.QueryExecutionException;
@@ -61,7 +62,9 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 		    }
 
 		    // Get the column values.
-		    getColumnValues (qd.getResults(), resC);
+//		    getColumnValues(qd.getResults(), resC);
+		    ColumnValuesExtractor extractor = new ColumnValuesExtractor(q, cols);
+		    extractor.extractColumnValues(qd.getResults(), resC);
 
 		    if (q.getWantDistinctResults()) {
 
@@ -98,83 +101,6 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 
 		}
 		
-	}
-
-
-	private void getColumnValues (final List       res,
-			  final Collection rs)
-                        throws QueryExecutionException {
-	
-		int s = res.size ();
-		
-		int cs = cols.size ();
-		
-		boolean addItems = false;
-		
-		for (int i = 0; i < s; i++) {
-		
-		  Object o = res.get (i);
-		
-		  q.setCurrentObject(o);
-		
-		  List sRes = new ArrayList (cs);
-		
-		  for (int j = 0; j < cs; j++)
-		  {
-		
-			SelectItemExpression v = (SelectItemExpression) cols.get (j);
-		
-			try
-			{
-		
-			    if (v.isAddItemsFromCollectionOrMap()) {
-		
-			    	addItems = true;
-				    
-			    }
-				
-			    // Get the value from the object...
-			    Object ov = v.getValue (o, q);
-			    
-			    if (addItems) {
-				    
-			    	rs.addAll(v.getAddItems(ov));
-				
-			    } else {
-				
-			    	sRes.add (ov);
-				
-			    }
-			    
-			    // Now since the expression can set the current object, put it
-			    // back to rights after the call...
-			    q.setCurrentObject(o);
-		
-			} catch (Exception e) {
-		
-			    throw new QueryExecutionException ("Unable to get value for column: " +
-							       j + 
-							       " for: " +
-							       v.toString () + 
-							       " from result: " +
-							       i + 
-							       " (" +
-							       o + 
-							       ")",
-							       e);
-								   
-			}
-			
-		  }
-		
-		  if (!addItems) {
-		
-			  rs.add(sRes);
-		
-		  }
-		
-		}
-	
 	}
 	
     private List getNewObjectSingleColumnValues (final List   rows)
