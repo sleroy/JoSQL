@@ -109,6 +109,29 @@ public class AppTest {
 		
 	}
 	
+	@Test
+	public void testLimit() throws QueryExecutionException, QueryParseException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, superviser, time "
+				+ "FROM net.sf.josql.Work "
+				+ "LIMIT 1, 2");
+		QueryResults result = q.execute(works);
+		System.out.println(result.getResults());
+		List<Result> results = result.asList();
+		
+		assertEquals(2, results.size());
+		
+		for(int i=0; i<results.size(); i++) {
+			Work expectedWork = works.get(i);
+			System.out.println(expectedWork.getWorker().getName()+" "+expectedWork.getTime());
+			assertEquals(expectedWork.getWorker(), results.get(i).getList().get(0));
+			assertEquals(expectedWork.getSuperviser(), results.get(i).getList().get(1));
+			assertEquals(expectedWork.getTime(), results.get(i).getList().get(2));
+		}
+		
+	}
+	
 	private void showExecutionTimeInfo(final Map<String, Double> timings) {
 		
 		for(String s : timings.keySet()) {

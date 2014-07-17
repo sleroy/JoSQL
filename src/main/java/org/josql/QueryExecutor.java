@@ -3,6 +3,7 @@ package org.josql;
 import java.util.List;
 
 import org.josql.evaluators.GroupByClauseEvaluator;
+import org.josql.evaluators.LimitClauseEvaluator;
 import org.josql.evaluators.OrderByClauseEvaluator;
 import org.josql.evaluators.QueryEvaluator;
 import org.josql.evaluators.SelectClauseEvaluator;
@@ -76,7 +77,9 @@ public class QueryExecutor {
 //	        query.evalOrderByClause ();
 
 	        // Finally, if we have a limit clause, restrict the set of objects returned...
-	        query.evalLimitClause ();
+	    	QueryEvaluator limitClauseEvaluator = new LimitClauseEvaluator();
+	    	limitClauseEvaluator.evaluate(query);
+//	        query.evalLimitClause ();
 
 	        QueryEvaluator selectClauseEvaluator = new SelectClauseEvaluator(query.cols, columnExtractor);
 			selectClauseEvaluator.evaluate(query);
