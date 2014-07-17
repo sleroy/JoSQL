@@ -12,14 +12,19 @@ import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.NewObjectExpression;
 import org.josql.expressions.SelectItemExpression;
 import org.josql.functions.CollectionFunctions;
+import org.josql.utils.Timer;
 
 public class SelectClauseEvaluator implements QueryEvaluator {
 
 	private Query q;
 	private List cols;
+	private Timer timer;
+	private ColumnValuesExtractor extractor;
 	
-	public SelectClauseEvaluator(final List _cols) {
+	public SelectClauseEvaluator(final List _cols, final ColumnValuesExtractor _extractor) {
+		
 		cols = _cols;
+		extractor = _extractor;
 	}
 	
 	public void evaluate(final Query q) throws QueryExecutionException {
@@ -43,7 +48,8 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 
 		}
 
-		long s = System.currentTimeMillis ();
+		timer = qd.getTimeEvaluator().newTimer("Collection of results took");
+		timer.start();
 
 		// Now get the columns if necessary, we do this here to get the minimum
 		// set of objects required.
@@ -63,7 +69,7 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 
 		    // Get the column values.
 //		    getColumnValues(qd.getResults(), resC);
-		    ColumnValuesExtractor extractor = new ColumnValuesExtractor(q, cols);
+//		    ColumnValuesExtractor extractor = new ColumnValuesExtractor(q, cols);
 		    extractor.extractColumnValues(qd.getResults(), resC);
 
 		    if (q.getWantDistinctResults()) {
@@ -74,21 +80,20 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 
 		    	qd.setResults((List) resC);
 
-		    }
-
-		   q.addTiming ("Collection of results took",
-				    System.currentTimeMillis () - s);
+		    }		    	  
+		    
+		    timer.stop();
 
 		} else {
 
 		    if (q.isWantObjects() && q.getWantDistinctResults()) {
 	
-			    s = System.currentTimeMillis ();
+		    	timer = qd.getTimeEvaluator().newTimer("Collecting unique results took");
+				timer.start();
 			    
 			    qd.setResults(((CollectionFunctions) q.getFunctionHandler (CollectionFunctions.HANDLER_ID)).unique (qd.getResults()));
 			    
-			    q.addTiming ("Collecting unique results took",
-					    System.currentTimeMillis () - s);
+			    timer.stop();
 	
 			}
 

@@ -3,9 +3,8 @@ package org.josql.evaluators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +15,9 @@ import org.josql.exceptions.QueryExecutionException;
 import org.josql.functions.CollectionFunctions;
 import org.josql.internal.GroupByExpressionComparator;
 import org.josql.internal.Grouper;
+import org.josql.internal.Limit;
 import org.josql.internal.ListExpressionComparator;
+import org.josql.utils.Timer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -27,19 +28,35 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
 	private Grouper grouper;
 	private QueryResults qd;
 	private Query query;
+	private ColumnValuesExtractor extractor;
+	private Timer timer;
+	private Comparator groupOrderByComparator;
+	private Limit groupByLimit;
+	private Limit limit;
 	
-	public GroupByClauseEvaluator(Grouper _grouper) {
+	public GroupByClauseEvaluator(final Grouper _grouper, final ColumnValuesExtractor _extractor) {
 		
 		grouper = _grouper;
+		extractor = _extractor;
 	
 	}
 	
-	public void evaluate(Query q) throws QueryExecutionException { /*
-		
-		long s = System.currentTimeMillis ();
+	private void init(final Query q) {
 		
 		query = q;
 		qd = q.getQueryResults();
+		groupOrderByComparator = q.getGroupOrderByComp();
+		groupByLimit = q.getGroupByLimit();
+		limit = q.getLimit();
+		
+	}
+	
+	public void evaluate(final Query q) throws QueryExecutionException { 
+			
+		init(q);
+		
+		timer = qd.getTimeEvaluator().newTimer("Group column collection and sort took");
+		timer.start();
 	     
         // Need to handle the fact that this will return a Map of Lists...
         try {
@@ -111,7 +128,6 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
 
                     }
 
-                    ColumnValuesExtractor extractor = new ColumnValuesExtractor(q, cols);
         		    extractor.extractColumnValues(lr, res);
 
                     if (q.getWantDistinctResults()) {
@@ -134,7 +150,7 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
 
                 }
 
-                nres.put (l, lr);
+                nres.put(l, lr);
 
             }
 
@@ -144,31 +160,29 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
             // Set the group by results.
             qd.setGroupByResults(nres);
 
-            long t = System.currentTimeMillis ();
-
-            q.addTiming ("Group column collection and sort took", t - s);
+            timer.stop();
             
-            s = t;
+            timer = qd.getTimeEvaluator().newTimer("Group operation took");
+            timer.start();
             
             // Now order the group bys, if present.
-            if (q.getGroupOrderByComp() != null)
+            if (groupOrderByComparator != null)
             {
 
                 origSvs = qd.getSaveValues();
 
-                Collections.sort (grpBys, q.getGroupOrderByComp());
+                Collections.sort (grpBys, groupOrderByComparator);
 
                 // "Restore" the save values.
                 qd.setSaveValues(origSvs);
 
-                GroupByExpressionComparator lec = (GroupByExpressionComparator) q.getGroupOrderByComp();
+                GroupByExpressionComparator lec = (GroupByExpressionComparator) groupOrderByComparator;
 
-                if (lec.getException () != null)
-                {
-
+                if (lec.getException () != null) {
+                	
                     throw new QueryExecutionException ("Unable to order group bys, remember that the current object here is a java.util.List, not the class defined in the FROM clause, you may need to use the org.josq.functions.CollectionFunctions.get(java.util.List,Number) function to get access to the relevant value from the List.",
                                                        lec.getException ());
-
+                    
                 }
 
                 lec.clearCache ();
@@ -176,66 +190,58 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
             }
 
             // Now limit the group bys, if required.
-            if (q.groupByLimit != null)
+            if (groupByLimit != null)
             {
 
-                s = System.currentTimeMillis ();
+                Timer timer2 = qd.getTimeEvaluator().newTimer("Total time to limit group by results size");
+                timer2.start();
                 
                 List oGrpBys = grpBys;
                 
-                grpBys = groupByLimit.getSubList (grpBys,
-                                                       this);
+                grpBys = groupByLimit.getSubList (grpBys, q);
                 
                 // Now trim out from the group by results any list that isn't in the current grpbys.
-                for (int i = 0; i < oGrpBys.size (); i++)
-                {
+                for (int i = 0; i < oGrpBys.size (); i++) {
 
                     List l = (List) oGrpBys.get (i);
 
-                    if (!grpBys.contains (l))
-                    {
+                    if (!grpBys.contains (l)) {
                         
                         // Remove.
-                        qd.groupByResults.remove (l);
+                        qd.getGroupByResults().remove(l);
                         
                     }
                     
                 }
                 
-                addTiming ("Total time to limit group by results size",
-                                System.currentTimeMillis () - s);	
+                timer2.stop();	
 
             }
 
-            addTiming ("Group operation took",
-                            System.currentTimeMillis () - s);
+            timer.stop();
 
             // "Restore" the save values.
             qd.setSaveValues(origSvs);
 
-            qd.results = grpBys;
+            qd.setResults(grpBys);
             
             // NOW limit the group by results to a certain size, this needs
             // to be done last so that the group by limit clause can make use of the size of the
             // results.
-            if (limit != null)
-            {
+            if (limit != null) {
                 
-                for (int i = 0; i < qd.results.size (); i++)
-                {
+                for (int i = 0; i < qd.getResults().size (); i++) {
 
-                    List l = (List) qd.results.get (i);
+                    List l = (List) qd.getResults().get(i);
 
-                    List lr = (List) qd.groupByResults.get (l);
+                    List lr = (List) qd.getGroupByResults().get(l);
 
-                    allObjects = lr;
-                    currGroupBys = l;
+                    q.setAllObjects(lr);
+                    q.setCurrentGroupByObjects(l);
             
-                    qd.setSaveValues((Map) qd.groupBySaveValues.get (l));
+                    qd.setSaveValues((Map) qd.getGroupBySaveValues().get(l));
                         
-                    qd.groupByResults.put (l,
-                                                limit.getSubList (lr,
-                                                                       this));
+                    qd.getGroupByResults().put(l, limit.getSubList (lr, q));
                 
                 }            
 
@@ -245,15 +251,13 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
 
         } catch (Exception e) {
 
-            throw new QueryExecutionException ("Unable to perform group by operation",
-                                               e);
+            throw new QueryExecutionException ("Unable to perform group by operation", e);
 
         }
                                    
-		*/
 	}
 	
-	private void orderGroupByResult(List lr) throws QueryExecutionException {
+	private void orderGroupByResult(final List lr) throws QueryExecutionException {
 		
 		if ((lr.size () > 1) && (query.getOrderByComparator() != null)) {
 

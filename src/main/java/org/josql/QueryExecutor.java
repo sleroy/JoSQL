@@ -2,16 +2,17 @@ package org.josql;
 
 import java.util.List;
 
-import javax.management.QueryEval;
-
+import org.josql.evaluators.GroupByClauseEvaluator;
 import org.josql.evaluators.OrderByClauseEvaluator;
 import org.josql.evaluators.QueryEvaluator;
 import org.josql.evaluators.SelectClauseEvaluator;
 import org.josql.exceptions.QueryExecutionException;
+import org.josql.utils.Timer;
 
 public class QueryExecutor {
 	
 	private Query query;
+	private ColumnValuesExtractor columnExtractor;
 	
 	public QueryExecutor(final Query q) {
 		
@@ -32,11 +33,14 @@ public class QueryExecutor {
 		{
 		    throw new QueryExecutionException ("List of objects must be non-null when an object class is specified.");
 		}
-
+		
 		if ((objClass == null) && (objs == null))
 		{
 		    objs = Query.nullQueryList;
 		}
+		
+		Timer timer = query.getQueryResults().getTimeEvaluator().newTimer("Query executed in");
+		timer.start();
 
 		query.allObjects = objs;
 
@@ -48,16 +52,21 @@ public class QueryExecutor {
 
 		// See if we have any functions that are to be executed on 
 		// the results...
-	    query.doExecuteOn (query.getQueryResults().results,
-	                          Query.RESULTS);
+	    query.doExecuteOn (query.getQueryResults().getResults(),Query.RESULTS);
 
 		// If we have a "having" clause execute it here...
-	    query.evalHavingClause ();
+	    query.evalHavingClause();
 	
+	    columnExtractor = new ColumnValuesExtractor(query, query.cols);
+	    
 	    if (query.grouper != null)
 	    {	           
+	    	
+	    	QueryEvaluator groupByEvaluator = new GroupByClauseEvaluator(query.grouper, columnExtractor);
+	    	groupByEvaluator.evaluate(query);
+	    	
 	    	// Now perform the group by operation.
-	    	query.evalGroupByClause ();
+//	    	query.evalGroupByClause();
 	    	
 	    }else{
 
@@ -69,7 +78,7 @@ public class QueryExecutor {
 	        // Finally, if we have a limit clause, restrict the set of objects returned...
 	        query.evalLimitClause ();
 
-	        QueryEvaluator selectClauseEvaluator = new SelectClauseEvaluator(query.cols);
+	        QueryEvaluator selectClauseEvaluator = new SelectClauseEvaluator(query.cols, columnExtractor);
 			selectClauseEvaluator.evaluate(query);
 //	        query.evalSelectClause ();
 	        
@@ -77,6 +86,8 @@ public class QueryExecutor {
 		    //query.clearResults ();
 
 	    }
+	    
+	    timer.stop();
 		
 	}
 	

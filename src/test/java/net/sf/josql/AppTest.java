@@ -3,7 +3,6 @@ package net.sf.josql;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -67,6 +66,8 @@ public class AppTest {
 			assertTrue(expectedResults.contains(row.getList()));
 		}
 		
+		showExecutionTimeInfo(result.getTimings());
+		
 	}
 	
 	@Test
@@ -83,7 +84,7 @@ public class AppTest {
 		List<Work> sortedWorks = Lists.newArrayList();
 		sortedWorks.addAll(works);
 		Collections.sort(sortedWorks, new Comparator<Work>() {
-			public int compare(Work o1, Work o2) {
+			public int compare(final Work o1, final Work o2) {
 				if (o1.getTime() < o2.getTime()) {
 					return -1;
 				}
@@ -94,12 +95,24 @@ public class AppTest {
 			}		
 		});
 		
+		assertEquals(sortedWorks.size(), results.size());
+		
 		for(int i=0; i<sortedWorks.size(); i++) {
 			Work expectedWork = sortedWorks.get(i);
 			System.out.println(expectedWork.getWorker().getName()+" "+expectedWork.getTime());
 			assertEquals(expectedWork.getWorker(), results.get(i).getList().get(0));
 			assertEquals(expectedWork.getSuperviser(), results.get(i).getList().get(1));
 			assertEquals(expectedWork.getTime(), results.get(i).getList().get(2));
+		}
+		
+		showExecutionTimeInfo(result.getTimings());
+		
+	}
+	
+	private void showExecutionTimeInfo(final Map<String, Double> timings) {
+		
+		for(String s : timings.keySet()) {
+			System.out.println(s+" : "+ timings.get(s).toString()+"s");
 		}
 		
 	}

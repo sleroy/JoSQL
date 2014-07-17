@@ -18,12 +18,10 @@ import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -39,7 +37,6 @@ import org.josql.expressions.BindVariable;
 import org.josql.expressions.ConstantExpression;
 import org.josql.expressions.Expression;
 import org.josql.expressions.Function;
-import org.josql.expressions.NewObjectExpression;
 import org.josql.expressions.SaveValue;
 import org.josql.expressions.SelectItemExpression;
 import org.josql.functions.CollectionFunctions;
@@ -55,6 +52,7 @@ import org.josql.internal.Limit;
 import org.josql.internal.ListExpressionComparator;
 import org.josql.internal.OrderBy;
 import org.josql.parser.JoSQLParser;
+import org.josql.utils.Timer;
 
 /** 
  * This class provides the ability for a developer to apply an arbitrary SQL statement
@@ -233,16 +231,14 @@ public class Query
 	FunctionHandler o = new CollectionFunctions ();
 	o.setQuery (this);
 
-	bfhsMap.put (CollectionFunctions.HANDLER_ID,
-			  o);
+	bfhsMap.put(CollectionFunctions.HANDLER_ID, o);
 
 	bfhs.add (o);
 
 	o = new StringFunctions ();
 	o.setQuery (this);
 
-	bfhsMap.put (StringFunctions.HANDLER_ID,
-			  o);
+	bfhsMap.put(StringFunctions.HANDLER_ID, o);
 
 	bfhs.add (o);
 
@@ -405,6 +401,12 @@ public class Query
 
 	groupByLimit = g;
 
+    }
+    
+    public Limit getGroupByLimit() {
+    	
+    	return groupByLimit;
+    	
     }
 
     public void setGroupByOrderColumns (final List cols)
@@ -1002,266 +1004,13 @@ public class Query
     public QueryResults execute (final List   objs)
 	                         throws QueryExecutionException
     {
-    	
-    	qd = new QueryResults();
-    	
+    		
     	QueryExecutor process = new QueryExecutor(this);
     	process.execute(objs, objClass);
     	
     	return qd;
 
-    }
-
-    protected void evalGroupByClause ()
-                                    throws QueryExecutionException
-    {
-     
-        long s = System.currentTimeMillis ();
-     
-        // Need to handle the fact that this will return a Map of Lists...
-        try
-        {
-
-            s = System.currentTimeMillis ();
-
-            // Group the objects.
-            Map mres = grouper.group (qd.results);
-
-            qd.groupByResults = mres;
-
-            List grpBys = new ArrayList (mres.keySet ());
-
-            // Convert the keys in the group by to a List.
-            Map origSvs = qd.getSaveValues();
-
-            Map nres = new LinkedHashMap ();
-
-            int gs = grpBys.size ();
-
-            // Now for each "group by" list, do:
-            // 1. Execute the functions for the GROUP_BY_RESULTS type.
-            // 2. Sort the group by results according to the ORDER BY clause.
-            // 3. Limit the group by results according to the LIMIT clause.
-            for (int i = 0; i < gs; i++)
-            {
-
-                List l = (List) grpBys.get (i);
-
-                List lr = (List) mres.get (l);
-
-                allObjects = lr;
-                currGroupBys = l;
-
-                // Now set the save values for the group bys.
-                if (qd.groupBySaveValues == null)
-                {
-
-                    qd.groupBySaveValues = new HashMap ();
-
-                }
-
-                qd.setSaveValues(new HashMap ());
-
-                if (origSvs != null)
-                {
-
-                    qd.getSaveValues().putAll (origSvs);
-                    
-                }
-
-                qd.groupBySaveValues.put (l,
-                                               qd.getSaveValues());
-
-                // Now execute all (any) group by results functions.
-                doExecuteOn (lr,
-                                  Query.GROUP_BY_RESULTS);
-
-                // Now sort these according to the order by (if any).
-                if ((lr.size () > 1)
-                    &&
-                    (orderByComp != null)
-                   )
-                {
-
-                    Collections.sort (lr,
-                                      orderByComp);
-
-                    ListExpressionComparator lec = (ListExpressionComparator) orderByComp;
-
-                    if (lec.getException () != null)
-                    {
-
-                        throw new QueryExecutionException ("Unable to order group by results",
-                                                           lec.getException ());
-
-                    }
-
-                    lec.clearCache ();
-
-                }
-
-                if (!retObjs)
-                {
-
-                    // Now collect the values...
-                    Collection res = null;
-
-                    if (!distinctResults)
-                    {
-
-                        res = new ArrayList ();
-
-                    } else {
-
-                        res = new LinkedHashSet ();
-
-                    }
-
-                    getColumnValues (lr,
-                                          res);
-
-                    if (distinctResults)
-                    {
-
-                        lr = new ArrayList (res);
-
-                    } else {
-
-                        lr = (List) res;
-
-                    }
-
-                } else {
-
-                    if (distinctResults)
-                    {
-
-                        qd.results = ((CollectionFunctions) getFunctionHandler (CollectionFunctions.HANDLER_ID)).unique (qd.results);
-
-                    }
-
-                }
-
-                nres.put (l,
-                          lr);
-
-            }
-
-            // Restore the save values.
-            qd.setSaveValues(origSvs);
-
-            // Set the group by results.
-            qd.groupByResults = nres;
-
-            long t = System.currentTimeMillis ();
-
-            addTiming ("Group column collection and sort took",
-                            t - s);
-            
-            s = t;
-            
-            // Now order the group bys, if present.
-            if (groupOrderByComp != null)
-            {
-
-                origSvs = qd.getSaveValues();
-
-                Collections.sort (grpBys,
-                                  groupOrderByComp);
-
-                // "Restore" the save values.
-                qd.setSaveValues(origSvs);
-
-                GroupByExpressionComparator lec = (GroupByExpressionComparator) groupOrderByComp;
-
-                if (lec.getException () != null)
-                {
-
-                    throw new QueryExecutionException ("Unable to order group bys, remember that the current object here is a java.util.List, not the class defined in the FROM clause, you may need to use the org.josq.functions.CollectionFunctions.get(java.util.List,Number) function to get access to the relevant value from the List.",
-                                                       lec.getException ());
-
-                }
-
-                lec.clearCache ();
-
-            }
-
-            // Now limit the group bys, if required.
-            if (groupByLimit != null)
-            {
-
-                s = System.currentTimeMillis ();
-                
-                List oGrpBys = grpBys;
-                
-                grpBys = groupByLimit.getSubList (grpBys,
-                                                       this);
-                
-                // Now trim out from the group by results any list that isn't in the current grpbys.
-                for (int i = 0; i < oGrpBys.size (); i++)
-                {
-
-                    List l = (List) oGrpBys.get (i);
-
-                    if (!grpBys.contains (l))
-                    {
-                        
-                        // Remove.
-                        qd.groupByResults.remove (l);
-                        
-                    }
-                    
-                }
-                
-                addTiming ("Total time to limit group by results size",
-                                System.currentTimeMillis () - s);	
-
-            }
-
-            addTiming ("Group operation took",
-                            System.currentTimeMillis () - s);
-
-            // "Restore" the save values.
-            qd.setSaveValues(origSvs);
-
-            qd.results = grpBys;
-            
-            // NOW limit the group by results to a certain size, this needs
-            // to be done last so that the group by limit clause can make use of the size of the
-            // results.
-            if (limit != null)
-            {
-                
-                for (int i = 0; i < qd.results.size (); i++)
-                {
-
-                    List l = (List) qd.results.get (i);
-
-                    List lr = (List) qd.groupByResults.get (l);
-
-                    allObjects = lr;
-                    currGroupBys = l;
-            
-                    qd.setSaveValues((Map) qd.groupBySaveValues.get (l));
-                        
-                    qd.groupByResults.put (l,
-                                                limit.getSubList (lr,
-                                                                       this));
-                
-                }            
-
-            }
-
-            qd.setSaveValues(origSvs);
-
-        } catch (Exception e) {
-
-            throw new QueryExecutionException ("Unable to perform group by operation",
-                                               e);
-
-        }
-                                   
-    }                                    
+    }                              
 
     protected void evalHavingClause ()
                                    throws QueryExecutionException
@@ -1791,20 +1540,6 @@ public class Query
     }
 
     /**
-     * Sets the comparator to use to perform per object comparisons.
-     *
-     * @param c The comparator.
-     */
-/*
-    public void setObjectComparator (Comparator c)
-    {
-        
-        XXX
-        
-    }
-*/
-
-    /**
      * Will cause the order by comparator used to order the results
      * to be initialized.  This is generally only useful if you are specifying the
      * the order bys yourself via: {@link #setOrderByColumns(List)}.  Usage of
@@ -2113,42 +1848,39 @@ public class Query
      * @throws QueryParseException If the query cannot be parsed and/or {@link #init() inited}.
      */
     public void parse (final String q)
-	               throws QueryParseException
-    {
+	               throws QueryParseException {
 
-	query = q;
-
-	BufferedReader sr = new BufferedReader (new StringReader (q));
-
-	long s = System.currentTimeMillis ();
-
-	JoSQLParser parser = new JoSQLParser (sr);
-
-	addTiming ("Time to init josql parser object",
-			System.currentTimeMillis () - s);
-
-	s = System.currentTimeMillis ();
-
-	try
-	{
-
-	    parser.parseQuery (this);
-
-	} catch (Exception e) {
-
-	    throw new QueryParseException ("Unable to parse query: " + 
-					   q,
-					   e);
-
-	}
-
-	isParsed = true;
-
-	addTiming ("Time to parse query into object form",
-			System.currentTimeMillis () - s);
-
-	// Init the query.
-	init ();
+		query = q;
+		
+		qd = new QueryResults();
+	
+		BufferedReader sr = new BufferedReader (new StringReader (q));
+	
+		Timer timer = qd.getTimeEvaluator().newTimer("Time to init josql parser object");
+		timer.start();	
+	
+		JoSQLParser parser = new JoSQLParser (sr);
+	
+		timer.stop();
+	
+		timer = qd.getTimeEvaluator().newTimer("Time to parse query into object form");
+		timer.start();
+		
+		try {
+	
+		    parser.parseQuery (this);
+	
+		} catch (Exception e) {
+	
+		    throw new QueryParseException ("Unable to parse query: " + q, e);
+		}
+	
+		isParsed = true;
+	
+		timer.stop();
+	
+		// Init the query.
+		init();
 
     }
 

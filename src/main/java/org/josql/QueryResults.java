@@ -14,9 +14,10 @@
  */
 package org.josql;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.josql.utils.TimeEvaluator;
 
 /**
  * This class holds all the "result" information about the execution of a particular
@@ -65,11 +66,10 @@ public class QueryResults
     Map groupBySaveValues = null;
     
     List<Result> globalResults;
-    
+    private TimeEvaluator timeEvaluator;
 
-    public QueryResults ()
-    {
-
+    public QueryResults () {
+    	timeEvaluator = new TimeEvaluator();
     }
 
     public Map getGroupBySaveValues (final List k)
@@ -159,10 +159,9 @@ public class QueryResults
      *
      * @return The timings.
      */
-    public Map getTimings ()
-    {
+    public Map<String, Double> getTimings () {
 
-	return timings;
+    	return timeEvaluator.getMap(); //timings;
 
     }
 
@@ -202,8 +201,16 @@ public class QueryResults
 
     }
 
-	public void setSaveValues(Map saveValues) {
+	public void setSaveValues(final Map saveValues) {
+		
 		this.saveValues = saveValues;
+		
 	}
-
+	
+	public TimeEvaluator getTimeEvaluator() {
+		
+		return timeEvaluator;
+		
+	}
+	
 }

@@ -7,25 +7,28 @@ import org.josql.Query;
 import org.josql.QueryResults;
 import org.josql.exceptions.QueryExecutionException;
 import org.josql.internal.ListExpressionComparator;
+import org.josql.utils.Timer;
 
 public class OrderByClauseEvaluator implements QueryEvaluator {
 
-	public void evaluate(Query q) throws QueryExecutionException {
+	private Timer timer;
+	
+	public void evaluate(final Query q) throws QueryExecutionException {
 		
 		QueryResults qd = q.getQueryResults();
 		Comparator orderByComp = q.getOrderByComparator();
 		
 		if ((qd.getResults().size () > 1) && (orderByComp != null)) {
 
-		    long s = System.currentTimeMillis ();
+			timer = qd.getTimeEvaluator().newTimer("Total time to order results");
+			timer.start();
 
 		    // It should be noted here that the comparator will set the
 		    // "current object" so that it can be used in the order by
 		    // clause.
 		    Collections.sort (qd.getResults(), orderByComp);
 
-		    q.addTiming ("Total time to order results",
-				    System.currentTimeMillis () - s);	
+			timer.stop();
 
 		}
 
