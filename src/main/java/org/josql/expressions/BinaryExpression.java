@@ -38,19 +38,20 @@ public abstract class BinaryExpression extends Expression
      * @param q The Query object.
      * @return <code>true<code> if the expression has a fixed result.
      */
-    public boolean hasFixedResult (Query q)
+    @Override
+	public boolean hasFixedResult (final Query q)
     {
 
 	boolean fr = true;
 
-	if (this.right != null)
+	if (right != null)
 	{
 
-	    fr = this.right.hasFixedResult (q);
+	    fr = right.hasFixedResult (q);
 
 	}
 
-	return this.left.hasFixedResult (q) && fr;
+	return left.hasFixedResult (q) && fr;
 
     }
 
@@ -60,7 +61,8 @@ public abstract class BinaryExpression extends Expression
      * @param q The Query object.
      * @return The class of the return type, this method ALWAYS returns <code>Boolean.class</code>.
      */
-    public Class getExpectedReturnType (Query  q)
+    @Override
+	public Class getExpectedReturnType (final Query  q)
     {
 
 	return Boolean.class;
@@ -75,17 +77,18 @@ public abstract class BinaryExpression extends Expression
      * @param q The Query object.
      * @throws QueryParseException If the LHS and/or RHS cannot be inited.
      */
-    public void init (Query  q)
+    @Override
+	public void init (final Query  q)
 	              throws QueryParseException
     {
 
-	this.left.init (q);
+	left.init (q);
 
 	// There isn't always a RHS, for example IN expressions.
-	if (this.right != null)
+	if (right != null)
 	{
 
-	    this.right.init (q);
+	    right.init (q);
 
 	}
 
@@ -101,12 +104,13 @@ public abstract class BinaryExpression extends Expression
      * @return An instance of Boolean.
      * @throws QueryExecutionException If the expression cannot be evaluated.
      */
-    public Object getValue (Object o,
-			    Query  q)
+    @Override
+	public Object getValue (final Object o,
+			    final Query  q)
 	                    throws QueryExecutionException
     {
 
-	return Boolean.valueOf (this.isTrue (o,
+	return Boolean.valueOf (isTrue (o,
 					     q));
 
     }
@@ -119,7 +123,7 @@ public abstract class BinaryExpression extends Expression
     public Expression getRight ()
     {
 
-	return this.right;
+	return right;
 
     }
 
@@ -131,21 +135,21 @@ public abstract class BinaryExpression extends Expression
     public Expression getLeft ()
     {
 
-	return this.left;
+	return left;
 
     }
 
-    public void setLeft (Expression exp)
+    public void setLeft (final Expression exp)
     {
 
-	this.left = exp;
+	left = exp;
 
     }
 
-    public void setRight (Expression exp)
+    public void setRight (final Expression exp)
     {
 
-	this.right = exp;
+	right = exp;
 
     }
 

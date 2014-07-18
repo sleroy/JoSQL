@@ -33,6 +33,7 @@ public class CsvTableTest {
 		resource3 = loadResource("sample3.csv");
 		resource4 = loadResource("sample4.csv");
 		resource5 = loadResource("sample5.csv");
+		
 	}
 	
 	private File loadResource(final String _path) throws URISyntaxException {

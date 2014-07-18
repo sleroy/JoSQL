@@ -64,6 +64,7 @@ public class AppTest {
 		assertEquals(2, results.size());
 		for (Result row : results) {
 			assertTrue(expectedResults.contains(row.getList()));
+			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));
 		}
 		
 		showExecutionTimeInfo(result.getTimings());
@@ -129,6 +130,39 @@ public class AppTest {
 			assertEquals(expectedWork.getSuperviser(), results.get(i).getList().get(1));
 			assertEquals(expectedWork.getTime(), results.get(i).getList().get(2));
 		}
+		
+	}
+	
+	@Test
+	public void testHaving() throws QueryExecutionException, QueryParseException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, @total_time "
+				+ "FROM net.sf.josql.Work "
+				+ "GROUP BY worker "
+				+ "HAVING @total_time > 6 "
+				+ "EXECUTE ON GROUP_BY_RESULTS sum(time) AS total_time");
+		
+		QueryResults result = q.execute(works);
+		
+		System.out.println(result.getHavingResults());
+		System.out.println(result.getResults());
+		
+		List<Result> results = result.asList();
+		
+		@SuppressWarnings("unchecked")
+		List<?> expectedResults = Lists.newArrayList(
+				Lists.newArrayList(persons.get("jeremie"), 10.0),
+				Lists.newArrayList(persons.get("sebastien"), 5.0)
+		);
+
+		assertEquals(2, results.size());
+		for (Result row : results) {
+			assertTrue(expectedResults.contains(row.getList()));
+			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));
+		}
+		
+		showExecutionTimeInfo(result.getTimings());
 		
 	}
 	

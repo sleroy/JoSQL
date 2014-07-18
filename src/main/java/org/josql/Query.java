@@ -54,6 +54,8 @@ import org.josql.internal.OrderBy;
 import org.josql.parser.JoSQLParser;
 import org.josql.utils.Timer;
 
+import com.google.common.collect.Lists;
+
 /** 
  * This class provides the ability for a developer to apply an arbitrary SQL statement
  * (using suitable syntax) to a collection of Java objects.
@@ -1017,7 +1019,15 @@ public class Query
     {
     
     	if (having != null)
-	{
+	{	
+    		qd.havingResults = Lists.newArrayList();
+    		for (Result r : qd.asList()) {
+    			if (having.isTrue(r, this)) {
+    				qd.havingResults.add(r);
+    			}
+    		}
+    		
+    		/*
 
 	    int si = qd.results.size (); 
 
@@ -1026,45 +1036,25 @@ public class Query
 	    for (int i = 0; i < si; i++)
 	    {
 
-		Object o = qd.results.get (i);
-
-		currentObject = o;
-
-		if (having.isTrue (o,
-					this))
-		{
-
-		    qd.havingResults.add (o);
-
-		}
+			Object o = qd.results.get (i);
+	
+			currentObject = o;
+	
+			if (having.isTrue (o, this)) {
+	
+			    qd.havingResults.add (o);
+	
+			}
 
 	    }	    
 
 	    qd.results = qd.havingResults;
 
 	    // Future proofing...
-	    allObjects = qd.results;
+	    allObjects = qd.results;*/
 
 	}
         
-    }
-
-    protected void evalLimitClause ()
-                                  throws QueryExecutionException
-    {
-        
-        if (limit != null)
-	{
-
-	    long s = System.currentTimeMillis ();
-
-	    qd.results = limit.getSubList (qd.results,
-						     this);
-
-	    addTiming ("Total time to limit results size",
-			    System.currentTimeMillis () - s);	
-
-	}
     }
 
     protected void evalWhereClause ()
@@ -1496,34 +1486,30 @@ public class Query
      *
      * @return The object the key maps to.
      */
-    public Object getSaveValue (Object id)
+    public Object getSaveValue (final Object id)
     {
 
-	if (parent != null)
-	{
-
-	    return parent.getSaveValue (id);
-
-	}
-
-	if ((qd == null)
-	    ||
-	    (qd.getSaveValues() == null)
-	   )
-	{
-
-	    return null;
-
-	}
-
-	if (id instanceof String)
-	{
-
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	return qd.getSaveValues().get (id);
+		if (parent != null) {
+			
+		    return parent.getSaveValue (id);
+	
+		}
+	
+		if (qd == null) {
+	
+		    return null;
+	
+		}
+	
+		Object v = qd.getSaveValue(id);
+		
+		if (v == null) {
+			
+			
+			
+		}
+		
+		return v;
 
     }
 

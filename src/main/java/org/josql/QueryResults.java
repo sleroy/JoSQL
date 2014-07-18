@@ -69,20 +69,21 @@ public class QueryResults
     private TimeEvaluator timeEvaluator;
 
     public QueryResults () {
+    	
     	timeEvaluator = new TimeEvaluator();
+    	
     }
 
     public Map getGroupBySaveValues (final List k)
     {
 
-	if (groupBySaveValues == null)
-	{
+    	if (groupBySaveValues == null) {
+    		
+    		return null;
+    		
+    	}
 
-	    return null;
-
-	}
-
-	return (Map) groupBySaveValues.get (k);
+    	return (Map) groupBySaveValues.get (k);
 
     }
 
@@ -107,21 +108,19 @@ public class QueryResults
     public Object getSaveValue (Object id)
     {
 
-	if (getSaveValues() == null)
-	{
+    	if (getSaveValues() == null) {
 
-	    return null;
+    		return null;
 
-	}
+    	}
 
-	if (id instanceof String)
-	{
+		if (id instanceof String) {
+	
+		    id = ((String) id).toLowerCase ();
+	
+		}
 
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	return getSaveValues().get (id);
+		return getSaveValues().get(id);
 
     }
 

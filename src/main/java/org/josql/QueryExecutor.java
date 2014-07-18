@@ -56,7 +56,7 @@ public class QueryExecutor {
 	    query.doExecuteOn (query.getQueryResults().getResults(),Query.RESULTS);
 
 		// If we have a "having" clause execute it here...
-	    query.evalHavingClause();
+//	    query.evalHavingClause();
 	
 	    columnExtractor = new ColumnValuesExtractor(query, query.cols);
 	    
@@ -65,6 +65,7 @@ public class QueryExecutor {
 	    	
 	    	QueryEvaluator groupByEvaluator = new GroupByClauseEvaluator(query.grouper, columnExtractor);
 	    	groupByEvaluator.evaluate(query);
+	    	query.evalHavingClause();
 	    	
 	    	// Now perform the group by operation.
 //	    	query.evalGroupByClause();
