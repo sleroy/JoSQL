@@ -14,7 +14,7 @@ public class ColumnValuesExtractor {
 	
 	public ColumnValuesExtractor(final Query q, final List cols) {
 		
-		this.query = q;
+		query = q;
 		this.cols = cols;
 		
 	}
@@ -68,16 +68,8 @@ public class ColumnValuesExtractor {
 		
 			} catch (Exception e) {
 		
-			    throw new QueryExecutionException ("Unable to get value for column: " +
-							       j + 
-							       " for: " +
-							       v.toString () + 
-							       " from result: " +
-							       i + 
-							       " (" +
-							       o + 
-							       ")",
-							       e);
+			    throw new QueryExecutionException("Unable to get value for column: "
+			    		+ j + " for: " +  v.toString() + " from result: " + " (" + o + ")", e);
 								   
 			}
 			

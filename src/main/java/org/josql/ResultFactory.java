@@ -16,7 +16,21 @@ public class ResultFactory {
 		
 		while (it.hasNext()) {
 			
-			results.add(new Result((List<Object>) it.next()));
+			Object o = it.next();
+			List<Object> l;
+			
+			if (o instanceof List) {
+				
+				l = (List<Object>) o;
+				
+			} else {
+				
+				l = Lists.newArrayList();
+				l.add(o);
+				
+			}
+			
+			results.add(new Result(l));		
 			
 		}
 		

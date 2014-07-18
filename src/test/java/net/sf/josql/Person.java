@@ -23,4 +23,10 @@ public class Person {
 		firstName = _firstName;
 	}
 	
+	@Override
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(name).append(" - ").append(firstName);
+		return sb.toString();
+	}
 }
