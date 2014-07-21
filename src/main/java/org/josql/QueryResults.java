@@ -31,9 +31,9 @@ public class QueryResults
 {
 
     // Execution data.
-    Map saveValues = null;
-    Map timings = null;
-    List results = null;
+    protected Map saveValues;
+    protected Map timings;
+    protected List results;
     
     public Map getGroupBySaveValues() {
 		return groupBySaveValues;
@@ -41,14 +41,6 @@ public class QueryResults
 
 	public void setGroupBySaveValues(final Map _groupBySaveValues) {
 		groupBySaveValues = _groupBySaveValues;
-	}
-
-	public List<Result> getGlobalResults() {
-		return globalResults;
-	}
-
-	public void setGlobalResults(final List<Result> _globalResults) {
-		globalResults = _globalResults;
 	}
 
 	public void setResults(final List _results) {

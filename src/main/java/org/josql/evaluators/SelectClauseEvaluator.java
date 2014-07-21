@@ -2,7 +2,6 @@ package org.josql.evaluators;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.josql.ColumnValuesExtractor;
@@ -13,6 +12,9 @@ import org.josql.expressions.NewObjectExpression;
 import org.josql.expressions.SelectItemExpression;
 import org.josql.functions.CollectionFunctions;
 import org.josql.utils.Timer;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class SelectClauseEvaluator implements QueryEvaluator {
 
@@ -59,11 +61,11 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 
 		    if (!q.getWantDistinctResults()){
 		    	
-		    	resC = new ArrayList (qd.getResults().size());
+		    	resC = Lists.newArrayList();
 
 		    } else {
 
-		    	resC = new LinkedHashSet (qd.getResults().size());
+		    	resC = Sets.newLinkedHashSet();
 
 		    }
 
@@ -72,15 +74,17 @@ public class SelectClauseEvaluator implements QueryEvaluator {
 //		    ColumnValuesExtractor extractor = new ColumnValuesExtractor(q, cols);
 		    extractor.extractColumnValues(qd.getResults(), resC);
 
-		    if (q.getWantDistinctResults()) {
-
-		    	qd.setResults(new ArrayList(resC));
-
-		    } else {
-
-		    	qd.setResults((List) resC);
-
-		    }		    	  
+		    qd.setResults(Lists.newArrayList(resC));
+		    
+//		    if (q.getWantDistinctResults()) {
+//
+//		    	qd.setResults(Lists.newArrayList(resC));
+//
+//		    } else {
+//
+//		    	qd.setResults((List) resC);
+//
+//		    }		    	  
 		    
 		    timer.stop();
 

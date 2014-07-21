@@ -16,12 +16,9 @@ package org.josql;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
@@ -137,39 +134,38 @@ public class Query
 
     private char wildcardChar = '%';
 
-    private Map aliases = new HashMap ();
-    private List groupBys = null;
-    private Comparator orderByComp = null;
-    private Comparator groupOrderByComp = null;
-	protected Grouper grouper = null;
-    private List orderBys = null;
-    private List groupOrderBys = null;
-    protected List cols = null;
+    private Map aliases = Maps.newHashMap();
+    private List groupBys;
+    private Comparator orderByComp;
+    private Comparator groupOrderByComp;
+	protected Grouper grouper;
+    private List orderBys;
+    private List groupOrderBys;
+    protected List cols;
     private boolean retObjs = false;
-    private Expression where = null;
-    private Expression having = null;
-    private Map bindVars = null;
-    private String query = null;
-    private boolean wantTimings = false;
-    private List functionHandlers = null;
+    private Expression where;
+    private Expression having;
+    private Map bindVars;
+    private String query;
+    private List functionHandlers;
     private int anonVarIndex = 1;
-    private Expression from = null;
-    private Class objClass = null;
-    private Limit limit = null;
-    private Limit groupByLimit = null;
-    private Map executeOn = null;
+    private Expression from;
+    private Class objClass;
+    private Limit limit;
+    private Limit groupByLimit;
+    private Map executeOn;
     private boolean isParsed = false;
     private boolean distinctResults = false;
-    private ClassLoader classLoader = null;
-    private Query parent = null;
-    private Map listeners = new HashMap ();
+    private ClassLoader classLoader;
+    private Query parent;
+    private Map listeners= Maps.newHashMap();
 
     // Execution data.
-    private transient Object currentObject = null;
-    protected transient List allObjects = null;
-    private transient List currGroupBys = null;
+    private transient Object currentObject;
+    protected transient List allObjects;
+    private transient List currGroupBys;
 
-    private QueryResults qd = null;
+    private QueryResults qd;
 
     /**
      * Return the WHERE clause expression.
@@ -221,68 +217,61 @@ public class Query
 
     }
 
-    private void initFunctionHandlers ()
-    {
+    private void initFunctionHandlers() {
 
-	FunctionHandler o = new CollectionFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put(CollectionFunctions.HANDLER_ID, o);
-
-	bfhs.add (o);
-
-	o = new StringFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put(StringFunctions.HANDLER_ID, o);
-
-	bfhs.add (o);
-
-	o = new ConversionFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put (ConversionFunctions.HANDLER_ID,
-			  o);
-
-	bfhs.add (o);
-
-	o = new FormattingFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put (FormattingFunctions.HANDLER_ID,
-			  o);
-
-	bfhs.add (o);
-
-	o = new GroupingFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put (GroupingFunctions.HANDLER_ID,
-			  o);
-
-	bfhs.add (o);
-
-	o = new MiscellaneousFunctions ();
-	o.setQuery (this);
-
-	bfhsMap.put (MiscellaneousFunctions.HANDLER_ID,
-			  o);
-
-	bfhs.add (o);
+		FunctionHandler o = new CollectionFunctions ();
+		o.setQuery (this);
+		
+		bfhsMap.put(CollectionFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new StringFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put(StringFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new ConversionFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (ConversionFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new FormattingFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (FormattingFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
+	
+		o = new GroupingFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (GroupingFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
+	
+		o = new MiscellaneousFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (MiscellaneousFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
 
     }
 
-    public Map getExecuteOnFunctions ()
-    {
+    public Map getExecuteOnFunctions () {
 
-	return executeOn;
+    	return executeOn;
 
     }
 
-    public void setExecuteOnFunctions (final Map ex)
-    {
+    public void setExecuteOnFunctions(final Map ex) {
 
-	executeOn = ex;
+    	executeOn = ex;
 
     }
 
@@ -307,58 +296,52 @@ public class Query
     public List getDefaultFunctionHandlers ()
     {
 
-	if (parent != null)
-	{
-
-	    return parent.getDefaultFunctionHandlers ();
-
-	}
-
-	return new ArrayList (bfhs);
-
-    }
-
-    public List getFunctionHandlers ()
-    {
-
-	if (parent != null)
-	{
-
-	    return parent.getFunctionHandlers ();
-
-	}
-
-	return functionHandlers;
+		if (parent != null) {
+	
+		    return parent.getDefaultFunctionHandlers ();
+	
+		}
+	
+		return Lists.newArrayList(bfhs);
 
     }
 
-    public void addFunctionHandler (final Object o)
-    {
+    public List getFunctionHandlers() {
 
-	if (parent != null)
-	{
+		if (parent != null) {
+	
+		    return parent.getFunctionHandlers();
+	
+		}
 
-	    parent.addFunctionHandler (o);
+		return functionHandlers;
 
-	}
+    }
 
-	if (functionHandlers == null)
-	{
+    public void addFunctionHandler (final Object o) {
 
-	    functionHandlers = Lists.newArrayList();
-
-	}
-
-	if (o instanceof FunctionHandler)
-	{
-
-	    FunctionHandler fh = (FunctionHandler) o;
-
-	    fh.setQuery (this);
-
-	}
-
-	functionHandlers.add (o);
+		if (parent != null) {
+	
+		    parent.addFunctionHandler(o);
+	
+		}
+	
+		if (functionHandlers == null) {
+	
+		    functionHandlers = Lists.newArrayList();
+	
+		}
+	
+		if (o instanceof FunctionHandler)
+		{
+	
+		    FunctionHandler fh = (FunctionHandler) o;
+	
+		    fh.setQuery (this);
+	
+		}
+	
+		functionHandlers.add(o);
 
     }
 
@@ -475,41 +458,7 @@ public class Query
 	initFunctionHandlers ();
 
     }
-
-    public void setWantTimings (final boolean v)
-    {
-
-	wantTimings = v;
-
-    }
-
-    public void addTiming (final String id,
-			      final double time)
-    {
-
-	if (wantTimings)
-	{
-
-	    if (qd == null)
-	    {
-
-		return;
-
-	    }
-
-	    if (qd.timings == null)
-	    {
-
-		qd.timings = new LinkedHashMap ();
-
-	    }
-
-	    qd.timings.put (id,
-				 new Double (time));
-
-	}
-
-    }
+    
 
     /**
      * Get the value of an indexed bind variable.
@@ -888,10 +837,9 @@ public class Query
     }                              
     
 
-    public void setCurrentGroupByObjects (final List objs)
-    {
+    public void setCurrentGroupByObjects (final List objs) {
 
-	currGroupBys = objs;
+    	currGroupBys = objs;
 
     }
 
@@ -929,156 +877,29 @@ public class Query
      *
      * @return The current object in context.
      */
-    public Object getCurrentObject ()
-    {
+    public Object getCurrentObject() {
 
-	return currentObject;
+    	return currentObject;
 
     }
 
-    private void getColumnValues (final List       res,
-				  final Collection rs)
-	                          throws     QueryExecutionException
-    {
+    public void setSaveValues(final Map s) {
 
-	int s = res.size ();
-
-	int cs = cols.size ();
-
-	boolean addItems = false;
-
-	for (int i = 0; i < s; i++)
-	{
-
-	    Object o = res.get (i);
-
-	    currentObject = o;
-
-	    List sRes = new ArrayList (cs);
-
-	    for (int j = 0; j < cs; j++)
-	    {
-
-		SelectItemExpression v = (SelectItemExpression) cols.get (j);
-
-		try
+		if (parent != null)
 		{
-
-		    if (v.isAddItemsFromCollectionOrMap ())
-		    {
-
-			addItems = true;
-			    
-		    }
+	
+			Map<Object, Object> values = Maps.newHashMap();
+			values.putAll(parent.qd.getSaveValues());
+			values.putAll(s);
+			parent.qd.setSaveValues(values);
 			
-		    // Get the value from the object...
-		    Object ov = v.getValue (o,
-					    this);
-		    
-		    if (addItems)
-		    {
-			    
-			rs.addAll (v.getAddItems (ov));
-			
-		    } else {
-			
-			sRes.add (ov);
-			
-		    }
-		    
-		    // Now since the expression can set the current object, put it
-		    // back to rights after the call...
-		    currentObject = o;
-
-		} catch (Exception e) {
-
-		    throw new QueryExecutionException ("Unable to get value for column: " +
-						       j + 
-						       " for: " +
-						       v.toString () + 
-						       " from result: " +
-						       i + 
-						       " (" +
-						       o + 
-						       ")",
-						       e);
-							   
+//		    parent.qd.saveValues.putAll(s);
+	
+		    return;
+	
 		}
-		
-	    }
-
-	    if (!addItems)
-	    {
-
-		rs.add (sRes);
-
-	    }
-
-	}
-
-    }
-
-    private List getNewObjectSingleColumnValues (final List   rows)
-	                                         throws QueryExecutionException
-    {
-
-	int s = rows.size ();
-
-	SelectItemExpression nsei = (SelectItemExpression) cols.get (0);
-
-	List res = new ArrayList (s);
-
-	for (int i = 0; i < s; i++)
-	{
-
-	    Object o = rows.get (i);
-
-	    currentObject = o;
-
-	    try
-	    {
-
-		res.add (nsei.getValue (o,
-					this));
-
-		// Now since the expression can set the current object, put it
-		// back to rights after the call...
-		currentObject = o;
-
-	    } catch (Exception e) {
-
-		throw new QueryExecutionException ("Unable to get value for column: " +
-						   1 + 
-						   " for: " +
-						   nsei.toString () + 
-						   " from result: " +
-						   i + 
-						   " (" +
-						   o + 
-						   ")",
-						   e);
-							   
-	    }
-
-	}
-
-	return res;
-
-    }
-
-    public void setSaveValues (final Map s)
-    {
-
-	if (parent != null)
-	{
-
-	    parent.qd.saveValues.putAll (s);
-
-	    return;
-
-	}
-
-	qd.saveValues = s;
+	
+		qd.setSaveValues(s);
 
     }
     
@@ -1086,43 +907,35 @@ public class Query
 			      final Object value)
     {
 
-	if (parent != null)
-	{
-
-	    parent.setSaveValue (id,
-				      value);
-
-	    return;
-
-	}
-
-	if (qd == null)
-	{
-
-	    return;
-
-	}
-
-	if (id instanceof String)
-	{
-
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	Object old = qd.getSaveValues().get (id);
-
-	qd.getSaveValues().put (id,
-				value);
-
-	if (old != null)
-	{
-
-	    fireSaveValueChangedEvent (id,
-					    old,
-					    value);
-
-	}
+		if (parent != null) {
+	
+		    parent.setSaveValue(id, value);
+		    return;
+	
+		}
+	
+		if (qd == null) {
+	
+		    return;
+	
+		}
+	
+		if (id instanceof String)
+		{
+	
+		    id = ((String) id).toLowerCase();
+	
+		}
+	
+		Object old = qd.getSaveValues().get(id);
+	
+		qd.getSaveValues().put(id,value);
+	
+		if (old != null) {
+	
+		    fireSaveValueChangedEvent(id, old, value);
+	
+		}
 
     }
 
@@ -1642,7 +1455,7 @@ public class Query
 	    }
 
 	    // See if the class name is the special "null".
-	    String cn = null;
+	    String cn;
 
 	    try
 	    {
@@ -2114,7 +1927,7 @@ public class Query
 	if (l == null)
 	{
 
-	    l = new ArrayList ();
+	    l = Lists.newArrayList();
 
 	    listeners.put ("bvs",
 				l);
@@ -2154,7 +1967,7 @@ public class Query
 	if (l == null)
 	{
 
-	    l = new ArrayList ();
+	    l = Lists.newArrayList();
 
 	    listeners.put ("svs",
 				l);
@@ -2305,10 +2118,9 @@ public class Query
      *
      * @return The order bys.
      */
-    public List getOrderByColumns ()
-    {
+    public List<Object> getOrderByColumns() {
 
-	return new ArrayList (orderBys);
+    	return Lists.newArrayList(orderBys);
 
     }
 
@@ -2318,10 +2130,9 @@ public class Query
      *
      * @param q The parent query.
      */
-    public void setParent (final Query q)
-    {
+    public void setParent (final Query q) {
 
-	parent = q;
+    	parent = q;
 
     }
 
@@ -2330,10 +2141,9 @@ public class Query
      *
      * @return The query, will be <code>null</code> if there is no parent.
      */
-    public Query getParent ()
-    {
+    public Query getParent() {
 
-	return parent;
+    	return parent;
 
     }
 

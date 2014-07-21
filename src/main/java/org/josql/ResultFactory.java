@@ -17,7 +17,7 @@ public class ResultFactory {
 		while (it.hasNext()) {
 			
 			Object o = it.next();
-			List<Object> l;
+			List<Object> l;			
 			
 			if (o instanceof List) {
 				
@@ -25,8 +25,7 @@ public class ResultFactory {
 				
 			} else {
 				
-				l = Lists.newArrayList();
-				l.add(o);
+				l = Lists.newArrayList(o);
 				
 			}
 			
