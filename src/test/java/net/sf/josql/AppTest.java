@@ -145,7 +145,7 @@ public class AppTest {
 		
 		QueryResults result = q.execute(works);
 		
-		System.out.println(result.getHavingResults());
+		//System.out.println(result.getHavingResults());
 		System.out.println(result.getResults());
 		
 		List<Result> results = result.asList();
@@ -156,7 +156,7 @@ public class AppTest {
 				Lists.newArrayList(persons.get("sebastien"), 5.0)
 		);
 
-		assertEquals(2, results.size());
+		assertEquals(1, results.size());
 		for (Result row : results) {
 			assertTrue(expectedResults.contains(row.getList()));
 			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));

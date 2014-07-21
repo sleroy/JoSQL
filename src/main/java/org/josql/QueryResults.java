@@ -60,7 +60,6 @@ public class QueryResults
 	}
 
 	List whereResults = null;
-    List havingResults = null;
     Map groupByResults = null;
 
     Map groupBySaveValues = null;
@@ -68,14 +67,13 @@ public class QueryResults
     List<Result> globalResults;
     private TimeEvaluator timeEvaluator;
 
-    public QueryResults () {
+    public QueryResults() {
     	
     	timeEvaluator = new TimeEvaluator();
     	
     }
 
-    public Map getGroupBySaveValues (final List k)
-    {
+    public Map getGroupBySaveValues(final List k) {
 
     	if (groupBySaveValues == null) {
     		
@@ -89,24 +87,20 @@ public class QueryResults
 
     /**
      * Get the save values.
-     *
      * @return The save values.
      */
-    public Map getSaveValues ()
-    {
+    public Map getSaveValues () {
 
-	return saveValues;
+    	return saveValues;
 
     }
 
     /**
      * Get a particular save value for the passed in key.
-     *
      * @param id The key of the save value.
      * @return The value it maps to.
      */
-    public Object getSaveValue (Object id)
-    {
+    public Object getSaveValue (Object id) {
 
     	if (getSaveValues() == null) {
 
@@ -116,7 +110,7 @@ public class QueryResults
 
 		if (id instanceof String) {
 	
-		    id = ((String) id).toLowerCase ();
+		    id = ((String) id).toLowerCase();
 	
 		}
 
@@ -175,18 +169,6 @@ public class QueryResults
 	return groupByResults;
 
     }    
-
-    /**
-     * Get the having results.
-     *
-     * @return The having results.
-     */
-    public List getHavingResults ()
-    {
-
-	return havingResults;
-
-    }
 
     /**
      * Get the where results.

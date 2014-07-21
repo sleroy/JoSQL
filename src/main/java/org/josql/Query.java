@@ -54,8 +54,6 @@ import org.josql.internal.OrderBy;
 import org.josql.parser.JoSQLParser;
 import org.josql.utils.Timer;
 
-import com.google.common.collect.Lists;
-
 /** 
  * This class provides the ability for a developer to apply an arbitrary SQL statement
  * (using suitable syntax) to a collection of Java objects.
@@ -1003,59 +1001,16 @@ public class Query
      * @return The list of objects that match the query.
      * @throws QueryExecutionException If the query cannot be executed.
      */
-    public QueryResults execute (final List   objs)
+    public QueryResults execute (final List<Object> objs)
 	                         throws QueryExecutionException
     {
     		
-    	QueryExecutor process = new QueryExecutor(this);
-    	process.execute(objs, objClass);
+    	QueryExecutor process = new QueryExecutor(this, objs, objClass);
+    	process.execute();
     	
     	return qd;
 
     }                              
-
-    protected void evalHavingClause ()
-                                   throws QueryExecutionException
-    {
-    
-    	if (having != null)
-	{	
-    		qd.havingResults = Lists.newArrayList();
-    		for (Result r : qd.asList()) {
-    			if (having.isTrue(r, this)) {
-    				qd.havingResults.add(r);
-    			}
-    		}
-    		
-    		/*
-
-	    int si = qd.results.size (); 
-
-	    qd.havingResults = new ArrayList (si);
-
-	    for (int i = 0; i < si; i++)
-	    {
-
-			Object o = qd.results.get (i);
-	
-			currentObject = o;
-	
-			if (having.isTrue (o, this)) {
-	
-			    qd.havingResults.add (o);
-	
-			}
-
-	    }	    
-
-	    qd.results = qd.havingResults;
-
-	    // Future proofing...
-	    allObjects = qd.results;*/
-
-	}
-        
-    }
 
     protected void evalWhereClause ()
                                   throws QueryExecutionException
@@ -1427,27 +1382,23 @@ public class Query
      * @return The object the key maps to.
      */
     public Object getGroupBySaveValue (final Object id,
-				       final List   gbs)
-    {
+				       final List   gbs) {
 
-	if (parent != null)
-	{
-
-	    return getGroupBySaveValue (id,
-					     gbs);
-
-	}
-
-	Map m = getGroupBySaveValues (gbs);
-
-	if (m == null)
-	{
-
-	    return null;
-
-	}
-
-	return m.get (id);
+		if (parent != null) {
+	
+		    return getGroupBySaveValue(id, gbs);
+	
+		}
+	
+		Map m = getGroupBySaveValues (gbs);
+	
+		if (m == null) {
+	
+		    return null;
+	
+		}
+	
+		return m.get(id);
 
     }
 
@@ -1501,15 +1452,7 @@ public class Query
 	
 		}
 	
-		Object v = qd.getSaveValue(id);
-		
-		if (v == null) {
-			
-			
-			
-		}
-		
-		return v;
+		return qd.getSaveValue(id);
 
     }
 
