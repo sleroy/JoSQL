@@ -851,7 +851,7 @@ public class Query
      * @throws QueryExecutionException If there is an issue with executing one of the
      *                                 expressions or if the Query hasn't been inited yet.
      */
-    public void doExecuteOn (final List   l,
+    /*public void doExecuteOn (final List   l,
 			     final String t)
 	                     throws QueryExecutionException
     {
@@ -914,7 +914,7 @@ public class Query
 
 	}
 
-    }
+    } */
 
     /**
      * This method will be called at the end of a query execution to clean up the
@@ -1084,14 +1084,14 @@ public class Query
      *
      * @return The list of objects in context.
      */
-    public List getAllObjects ()
+    public List<Object> getAllObjects ()
     {
 
-	return allObjects;
+    	return allObjects;
 
     }
 
-    public void setAllObjects (final List objs)
+    public void setAllObjects (final List<Object> objs)
     {
 
 	allObjects = objs;

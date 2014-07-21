@@ -175,11 +175,16 @@ public class QueryResults
      *
      * @return The where results.
      */
-    public List getWhereResults ()
-    {
+    public List<Object> getWhereResults() {
 
-	return whereResults;
+    	return whereResults;
 
+    }
+    
+    public void setWhereResults(final List<Object> _results) {
+    	
+    	whereResults = _results;
+    	
     }
 
 	public void setSaveValues(final Map saveValues) {

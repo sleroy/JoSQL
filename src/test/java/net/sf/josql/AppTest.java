@@ -41,6 +41,36 @@ public class AppTest {
 	}
 	
 	@Test
+	public void testWhere() throws QueryParseException, QueryExecutionException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, time "
+				+ "FROM net.sf.josql.Work "
+				+ "WHERE time > 3");
+		
+		QueryResults result = q.execute(works);
+		
+		System.out.println(result.getResults());
+		
+		List<Result> results = result.asList();
+		
+		@SuppressWarnings("unchecked")
+		List<?> expectedResults = Lists.newArrayList(
+				Lists.newArrayList(persons.get("jeremie"), 8),
+				Lists.newArrayList(persons.get("sebastien"), 5)
+		);
+
+		assertEquals(2, results.size());
+		for (Result row : results) {
+			assertTrue(expectedResults.contains(row.getList()));
+			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));
+		}
+		
+		showExecutionTimeInfo(result.getTimings());
+		
+	}
+	
+	@Test
 	public void testGroupBy() throws QueryParseException, QueryExecutionException {
 		
 		Query q = new Query();
@@ -144,7 +174,7 @@ public class AppTest {
 				+ "EXECUTE ON GROUP_BY_RESULTS sum(time) AS total_time");
 		
 		QueryResults result = q.execute(works);
-		
+
 		//System.out.println(result.getHavingResults());
 		System.out.println(result.getResults());
 		

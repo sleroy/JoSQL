@@ -107,7 +107,9 @@ public class GroupByClauseEvaluator implements QueryEvaluator {
                 qd.getGroupBySaveValues().put (l, qd.getSaveValues());
 
                 // Now execute all (any) group by results functions.
-                q.doExecuteOn (lr, Query.GROUP_BY_RESULTS);
+                QueryEvaluator executeOnEvaluator = new ExecuteOnEvaluator(lr, Query.GROUP_BY_RESULTS);
+        		executeOnEvaluator.evaluate(query);
+                //q.doExecuteOn (lr, Query.GROUP_BY_RESULTS);
 
                 // Now sort these according to the order by (if any).
                 orderGroupByResult(lr);
