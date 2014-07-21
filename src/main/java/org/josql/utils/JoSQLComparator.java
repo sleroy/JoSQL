@@ -14,10 +14,12 @@
  */
 package org.josql.utils;
 
-import java.util.List;
 import java.util.Comparator;
+import java.util.List;
 
 import org.josql.Query;
+import org.josql.evaluators.ExecuteOnEvaluator;
+import org.josql.evaluators.QueryEvaluator;
 import org.josql.exceptions.QueryExecutionException;
 import org.josql.exceptions.QueryParseException;
 import org.josql.internal.ListExpressionComparator;
@@ -82,12 +84,13 @@ public class JoSQLComparator implements Comparator
      *
      * @param l The list to execute the expressions on.
      */
-    public void doExecuteOn (List   l)
+    public void doExecuteOn (final List<Object> l)
 	                     throws QueryExecutionException
     {
 
-	this.q.doExecuteOn (l,
-			    Query.ALL);
+    	QueryEvaluator evaluator = new ExecuteOnEvaluator(l, Query.ALL);
+    	evaluator.evaluate(q);
+//    	q.doExecuteOn(l, Query.ALL);
 
     }
 
@@ -99,10 +102,10 @@ public class JoSQLComparator implements Comparator
     public void clearCache ()
     {
 
-	if (this.q != null)
+	if (q != null)
 	{
 
-	    this.c.clearCache ();
+	    c.clearCache ();
 
 	}
 
@@ -118,9 +121,9 @@ public class JoSQLComparator implements Comparator
 	                     throws  IllegalStateException
     {
 
-	if ((this.q == null)
+	if ((q == null)
 	    ||
-	    (!this.q.parsed ())
+	    (!q.parsed ())
 	   )
 	{
 
@@ -128,7 +131,7 @@ public class JoSQLComparator implements Comparator
 
 	}
 
-	return this.c.isCaching ();
+	return c.isCaching ();
 
     }
 
@@ -138,13 +141,13 @@ public class JoSQLComparator implements Comparator
      * @param b Set to <code>true</code> to turn caching on.
      * @throws IllegalStateException If the query has not yet been parsed or set.
      */
-    public void setCaching (boolean b)
+    public void setCaching (final boolean b)
 	                    throws  IllegalStateException
     {
 
-	if ((this.q == null)
+	if ((q == null)
 	    ||
-	    (!this.q.parsed ())
+	    (!q.parsed ())
 	   )
 	{
 
@@ -152,7 +155,7 @@ public class JoSQLComparator implements Comparator
 
 	}
 
-	this.c.setCaching (b);
+	c.setCaching (b);
 
     }
 
@@ -162,7 +165,7 @@ public class JoSQLComparator implements Comparator
      * @param q The query.
      * @throws QueryParseException If there is an issue with the parsing of the query.
      */
-    public JoSQLComparator (String  q)
+    public JoSQLComparator (final String  q)
 	                    throws  QueryParseException
     {
 
@@ -176,8 +179,8 @@ public class JoSQLComparator implements Comparator
      * @param o1 The first object.
      * @param o2 The second object.
      */
-    public int compare (Object o1,
-			Object o2)
+    public int compare (final Object o1,
+			final Object o2)
     {
 
 	try
@@ -188,7 +191,7 @@ public class JoSQLComparator implements Comparator
 
 	} catch (Exception e) {
 
-	    this.exp = e;
+	    exp = e;
 
 	    return 0;
 
@@ -203,7 +206,7 @@ public class JoSQLComparator implements Comparator
      * @throws IllegalStateException If the Query object has not been parsed.
      * @throws QueryParseException If the FROM class is not as expected.
      */
-    public JoSQLComparator (Query   q)
+    public JoSQLComparator (final Query   q)
 	                    throws  IllegalStateException,
 	                            QueryParseException
     {
@@ -224,7 +227,7 @@ public class JoSQLComparator implements Comparator
     public Exception getException ()
     {
 
-	return this.exp;
+	return exp;
 
     }
 
@@ -235,16 +238,16 @@ public class JoSQLComparator implements Comparator
      * @throws QueryParseException If there is an issue with the parsing of the query, 
      *                             or if the FROM class is not as expected.
      */
-    public void setQuery (String  q)
+    public void setQuery (final String  q)
 	                  throws  QueryParseException
     {
 
 	this.q = new Query ();
 	this.q.parse (q);
 
-	this.c = (ListExpressionComparator) this.q.getOrderByComparator ();
+	c = (ListExpressionComparator) this.q.getOrderByComparator ();
 
-	this.exp = null;
+	exp = null;
 
     }
 
@@ -255,7 +258,7 @@ public class JoSQLComparator implements Comparator
      * @throws IllegalStateException If the Query object has not been parsed.
      * @throws QueryParseException If the FROM class is not as expected.
      */
-    public void setQuery (Query   q)
+    public void setQuery (final Query   q)
 	                  throws  IllegalStateException,
 	                          QueryParseException
     {
@@ -269,9 +272,9 @@ public class JoSQLComparator implements Comparator
 
 	this.q = q;
 
-	this.c = (ListExpressionComparator) this.q.getOrderByComparator ();
+	c = (ListExpressionComparator) this.q.getOrderByComparator ();
 
-	this.exp = null;
+	exp = null;
 
     }
 
@@ -283,7 +286,7 @@ public class JoSQLComparator implements Comparator
     public Query getQuery ()
     {
 
-	return this.q;
+	return q;
 
     }
 

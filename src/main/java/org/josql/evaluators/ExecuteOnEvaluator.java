@@ -9,6 +9,11 @@ import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.AliasedExpression;
 import org.josql.utils.Timer;
 
+/**
+ * Execute all the expressions for the specified type, either: Query.ALL or:
+ * Query.RESULTS. If the expressions are aliased then the results will be
+ * available in the save results upon completion.
+ */
 public class ExecuteOnEvaluator implements QueryEvaluator {
 
 	private Query query;
@@ -16,6 +21,12 @@ public class ExecuteOnEvaluator implements QueryEvaluator {
 	private String type;
 	private Map<Object, Object> executeOn;
 	
+	/**
+	 * 
+	 * @param _executeOn The functions to execute
+	 * @param _objects The List of objects to execute the functions on.
+	 * @param _type The type of expressions to execute.
+	 */
 	public ExecuteOnEvaluator(final Map<Object, Object> _executeOn, final List<Object> _objects, final String _type) {
 		
 		objects = _objects;
@@ -24,9 +35,13 @@ public class ExecuteOnEvaluator implements QueryEvaluator {
 		
 	}
 	
+	/**
+	 * @param _objects The List of objects to execute the functions on.
+	 * @param _type The type of expressions to execute.
+	 */
 	public ExecuteOnEvaluator(final List<Object> _objects, final String _type) {
 		
-		this(Collections.emptyMap(), _objects, _type);
+		this(null, _objects, _type);
 		
 	}
 	
@@ -34,11 +49,15 @@ public class ExecuteOnEvaluator implements QueryEvaluator {
 		
 		query = _q;
 		
-		Map<Object, Object> functions = query.getExecuteOnFunctions();
-		
-		if (functions != null) {
+		if (executeOn.isEmpty()) {
 			
-			executeOn = functions;
+			Map<Object, Object> functions = query.getExecuteOnFunctions();
+			
+			if (functions != null) {
+				
+				executeOn = functions;
+				
+			}
 			
 		}
 		

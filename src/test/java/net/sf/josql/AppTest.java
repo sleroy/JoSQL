@@ -47,9 +47,10 @@ public class AppTest {
 		q.parse("SELECT worker, time "
 				+ "FROM net.sf.josql.Work "
 				+ "WHERE time > 3");
-		
+				
 		QueryResults result = q.execute(works);
 		
+		System.out.println(q.toString());
 		System.out.println(result.getResults());
 		
 		List<Result> results = result.asList();
