@@ -1,6 +1,5 @@
 package org.josql.csv;
 
-import java.beans.PropertyDescriptor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -12,7 +11,6 @@ import org.josql.exceptions.QueryParseException;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.bean.ColumnPositionMappingStrategy;
-import au.com.bytecode.opencsv.bean.CsvToBean;
 
 import com.google.common.collect.Maps;
 
@@ -88,21 +86,7 @@ public class CsvTable {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public List<Object> read(final String... _properties) {
 		
-		CsvToBean<Object> csv = new CsvToBean<Object>(){
-			
-			@Override
-		    protected Object convertValue(final String value, final PropertyDescriptor prop) throws InstantiationException,IllegalAccessException {
-				
-				StringConverter<?> converter = converters.get(prop.getPropertyType());
-				
-				if (converter != null) {			
-					return converter.convertValue(value);				
-				}
-				
-		        return super.convertValue(value, prop);
-		    }
-
-		};
+		JoCsvToBean csv = new JoCsvToBean(converters);
 		
 		CSVReader csvReader = new CSVReader(file, options.getSeparator(), options.getQuote(), options.getFirstLine());
 		

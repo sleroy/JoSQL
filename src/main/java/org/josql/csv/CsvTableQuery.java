@@ -28,6 +28,15 @@ public class CsvTableQuery {
 	}
 	
 	/**
+	 * @return the JoSQL Query that has been parsed
+	 */
+	public Query getQuery() {
+		
+		return query;
+		
+	}
+	
+	/**
 	 * Execute the JoSQL query
 	 * @return result of the JoSQL query
 	 * @throws QueryExecutionException
