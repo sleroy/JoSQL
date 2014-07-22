@@ -109,7 +109,7 @@ public class CsvTable {
 	public void setConverters(final Map<Class<?>, StringConverter<?>> _converters) {
 		
 		for(Class<?> clazz : _converters.keySet()) {		
-			converters.put(clazz, converters.get(clazz));			
+			setConverter(clazz, _converters.get(clazz));			
 		}
 		
 	}
