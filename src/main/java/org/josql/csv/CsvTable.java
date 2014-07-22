@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.josql.exceptions.CsvMappingNotFoundException;
 import org.josql.exceptions.QueryParseException;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -20,6 +21,7 @@ public class CsvTable {
 	private Class<?> pojoClass;
 	private List<Object> objects;
 	private Map<Class<?>, StringConverter<?>> converters;
+	private List<String> columnMapping;
 	
 	private CsvOptions options;
 	
@@ -28,7 +30,16 @@ public class CsvTable {
 		file = _csvFile;
 		pojoClass = _pojoClass;
 		converters = Maps.newHashMap();
+		columnMapping = Collections.emptyList();
 		options = new CsvOptions();
+		
+	}
+	
+	public CsvTable(final FileReader _csvFile, final CsvFileDescriptor _descriptor) {
+		
+		this(_csvFile, _descriptor.getRowClass());
+		setConverters(_descriptor.getConverters());
+		setColumnMapping(_descriptor.getColumnMapping());
 		
 	}
 	
@@ -38,9 +49,21 @@ public class CsvTable {
 			
 	}	
 	
+	public CsvTable(final String _csvFile, final CsvFileDescriptor _descriptor) throws FileNotFoundException {
+		
+		this(new FileReader(_csvFile), _descriptor);
+		
+	}
+	
 	public CsvTable(final File _csvFile, final Class<?> _pojoClass) throws FileNotFoundException {
 		
 		this(new FileReader(_csvFile), _pojoClass);
+		
+	}
+	
+	public CsvTable(final File _csvFile, final CsvFileDescriptor _descriptor) throws FileNotFoundException {
+		
+		this(new FileReader(_csvFile), _descriptor);
 		
 	}
 	
@@ -75,6 +98,49 @@ public class CsvTable {
 	public void setConverter(final Class<?> _class, final StringConverter<?> _converter) {
 		
 		converters.put(_class, _converter);
+		
+	}
+	
+	/**
+	 * Defines the converters that will be used for the
+	 * creation of the java objects from the CSV file
+	 * @param _converters
+	 */
+	public void setConverters(final Map<Class<?>, StringConverter<?>> _converters) {
+		
+		for(Class<?> clazz : _converters.keySet()) {		
+			converters.put(clazz, converters.get(clazz));			
+		}
+		
+	}
+	
+	/**
+	 * Defines the properties of the java class that will be matched
+	 * to the columns of the CSV file
+	 * (in the same order that they appear in the CSV file)
+	 * @param _columnMapping List of properties
+	 */
+	public void setColumnMapping(final List<String> _columnMapping) {
+		
+		columnMapping = _columnMapping;
+		
+	}
+	
+	/**
+	 * Read the CSV file and convert each row into a java object
+	 * @exception Throws an exception if the column mapping information has not been initialized
+	 * @return list of java objects generated from the CSV file
+	 * @throws CsvMappingNotFoundException
+	 */
+	public List<Object> read() throws CsvMappingNotFoundException {
+		
+		if (columnMapping.size() < 1) {
+			
+			throw new CsvMappingNotFoundException();
+			
+		}
+		
+		return read(columnMapping.toArray(new String[columnMapping.size()]));
 		
 	}
 	
