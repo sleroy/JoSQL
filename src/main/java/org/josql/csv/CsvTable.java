@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.josql.exceptions.CsvMappingNotFoundException;
 import org.josql.exceptions.QueryParseException;
+import org.josql.utils.Timer;
 
 import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.bean.ColumnPositionMappingStrategy;
@@ -22,8 +23,9 @@ public class CsvTable {
 	private List<Object> objects;
 	private Map<Class<?>, StringConverter<?>> converters;
 	private List<String> columnMapping;
-	
 	private CsvOptions options;
+	
+	private Timer readTimer;
 	
 	public CsvTable(final FileReader _csvFile, final Class<?> _pojoClass) {
 		
@@ -151,6 +153,9 @@ public class CsvTable {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public List<Object> read(final String... _properties) {
+				
+		readTimer = new Timer("time to read the file", null);
+		readTimer.start();
 		
 		JoCsvToBean csv = new JoCsvToBean(converters);
 		
@@ -161,6 +166,8 @@ public class CsvTable {
 		strat.setType(pojoClass);
 		
 		objects = csv.parse(strat, csvReader);
+		
+		readTimer.stop();
 		
 		if (objects == null) {
 			
@@ -178,6 +185,19 @@ public class CsvTable {
 	public List<Object> getObjects() {
 		
 		return objects;
+		
+	}
+	
+	/**
+	 * @return time took for reading the CSV file (in seconds)
+	 */
+	public Double getReadingTime() {
+		
+		if (readTimer == null) {		
+			return 0.00;			
+		}
+		
+		return readTimer.getTime() / 1000.00;
 		
 	}
 	
