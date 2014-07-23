@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/sleroy/JoSQL.svg?branch=master)](https://travis-ci.org/sleroy/JoSQL)
+
 Experimental version forked from Barry Gently's project at http://josql.sourceforge.net/ 
 
 Initial check-in of unmodified latest 2.1 source release from Sourceforge is in 2.1 branch.
