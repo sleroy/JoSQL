@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License.
  */
-package org.josql;
+package org.josql.exceptions;
 
 /**
  * The exception that is thrown during the <b>parse</b> and <b>init</b>
@@ -21,8 +21,13 @@ package org.josql;
 public class QueryParseException extends Exception 
 {
 
-    public QueryParseException (String    message,
-				Throwable cause)
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 745420731475852615L;
+
+	public QueryParseException (final String    message,
+				final Throwable cause)
     {
 
 	super (message,
@@ -30,7 +35,7 @@ public class QueryParseException extends Exception
 
     }
 
-    public QueryParseException (String message)
+    public QueryParseException (final String message)
     {
 
 	super (message);

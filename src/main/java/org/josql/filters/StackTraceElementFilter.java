@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * This class allows you to filter the stack trace of a Throwable, so cutting down

@@ -14,13 +14,14 @@
  */
 package org.josql.expressions;
 
-import com.gentlyweb.utils.Getter;
+import java.util.List;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
-
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.internal.Utilities;
+
+import com.gentlyweb.utils.Getter;
 
 public class SaveValue extends ValueExpression
 {
@@ -29,24 +30,25 @@ public class SaveValue extends ValueExpression
     private String acc = null;
     private Getter get = null;
 
-    public Class getExpectedReturnType (Query  q)
+    @Override
+	public Class getExpectedReturnType (final Query  q)
 	                                throws QueryParseException
     {
 
 	// See if the save value is already present.
-	Object sv = q.getSaveValue (this.name);
+	Object sv = q.getSaveValue (name);
 
 	if (sv != null)
 	{
 
-	    if (this.acc != null)
+	    if (acc != null)
 	    {
 
 		// Init the getter.
 		try
 		{
 
-		    this.get = new Getter (this.acc,
+		    get = new Getter (acc,
 					   sv.getClass ());
 
 		} catch (Exception e) {
@@ -54,14 +56,14 @@ public class SaveValue extends ValueExpression
 		    throw new QueryParseException ("Unable to create dynamic getter from instance of type: " +
 						   sv.getClass ().getName () + 
 						   " for save value: " +
-						   this.name +
+						   name +
 						   " using accessor: " +
-						   this.acc,
+						   acc,
 						   e);
 
 		}
 
-		return this.get.getType ();
+		return get.getType ();
 
 	    }
 
@@ -74,7 +76,8 @@ public class SaveValue extends ValueExpression
 
     }
 
-    public void init (Query  q)
+    @Override
+	public void init (final Query  q)
     {
 
 	// Nothing to do...
@@ -84,153 +87,155 @@ public class SaveValue extends ValueExpression
     public String getName ()
     {
 
-	return this.name;
+	return name;
 
     }
 
-    public void setName (String name)
+    public void setName (final String name)
     {
 
 	this.name = name;
 
     }
 
-    public Object getValue (Object o,
-			    Query  q)
+    @Override
+	public Object getValue (final Object o, final Query  q)
 	                    throws QueryExecutionException
     {
 
-	Object v = q.getSaveValue (this.name);
-
-	if (v == null)
-	{
-
-	    return v;
-
-	}
-
-	// See if we have an accessor...
-
-	if ((this.acc != null)
-	    &&
-	    (this.get == null)
-	   )
-	{
-
-	    try
-	    {
-
-		this.get = new Getter (this.acc,
-				       v.getClass ());
-
-	    } catch (Exception e) {
-
-		throw new QueryExecutionException ("Unable to create dynamic getter from instance of type: " +
-						   v.getClass ().getName () + 
-						   " for save value: " +
-						   this.name +
-						   " using accessor: " +
-						   this.acc,
-						   e);
-
-	    }
-
-	}
-
-	if (this.get != null)
-	{
-
-	    try
-	    {
-
-		v = this.get.getValue (v);
-
-	    } catch (Exception e) {
-
-		throw new QueryExecutionException ("Unable to get value from instance of type: " + 
-						   v.getClass ().getName () +
-						   " for save value: " + 
-						   this.name + 
-						   " using accessor: " + 
-						   this.acc,
-						   e);
-
-	    }
-
-	}
-
-	return v;
+		Object v = q.getSaveValue (name);
+	
+		if (v == null) {
+	
+			try {
+				
+				v = q.getGroupBySaveValue(name, (List) o);
+				
+			} catch(Exception e) {
+				
+				v = null;
+				
+			}
+			
+			if (v == null) {
+				
+				return v;
+				
+			}
+		    
+		}
+	
+		// See if we have an accessor...
+	
+		if ((acc != null) && (get == null)) {
+	
+		    try {
+	
+		    	get = new Getter (acc, v.getClass ());
+	
+		    } catch (Exception e) {
+	
+				throw new QueryExecutionException ("Unable to create dynamic getter from instance of type: " +
+								   v.getClass ().getName () + 
+								   " for save value: " + name +
+								   " using accessor: " + acc,
+								   e);
+		
+		    }
+	
+		}
+	
+		if (get != null) {
+	
+		    try {
+	
+		    	v = get.getValue (v);
+	
+		    } catch (Exception e) {
+	
+				throw new QueryExecutionException ("Unable to get value from instance of type: " + 
+								   v.getClass ().getName () +
+								   " for save value: " + name + 
+								   " using accessor: " + acc,
+								   e);
+		
+		    }
+	
+		}
+	
+		return v;
 
     }
 
-    public boolean isTrue (Object o,
-			   Query  q)
+    @Override
+	public boolean isTrue (Object o,
+			   final Query  q)
 	                   throws QueryExecutionException
     {
 
-	o = this.getValue (o,
-			   q);
-
-	if (o == null)
-	{
-	    
-	    return false;
-
-	}
-
-	if (Utilities.isNumber (o))
-	{
-
-	    return Utilities.getDouble (o) > 0;
-
-	}
-
-	// Not null so return true...
-	return true;
+		o = getValue (o, q);
+	
+		if (o == null) {
+		    
+		    return false;
+	
+		}
+	
+		if (Utilities.isNumber (o))
+		{
+	
+		    return Utilities.getDouble (o) > 0;
+	
+		}
+	
+		// Not null so return true...
+		return true;
 
     }
 
     public String getAccessor ()
     {
 
-	return this.acc;
+	return acc;
 
     }
 
-    public void setAccessor (String acc)
+    public void setAccessor (final String acc)
     {
 
 	this.acc = acc;
 
     }
 
-    public Object evaluate (Object o,
-			    Query  q)
+    @Override
+	public Object evaluate (final Object o,
+			    final Query  q)
 	                    throws QueryExecutionException
     {
 
-	return this.getValue (o,
+	return getValue (o,
 			      q);
 
     }
 
-    public String toString ()
+    @Override
+	public String toString ()
     {
 
 	StringBuffer buf = new StringBuffer ();
 
 	buf.append ("@");
-	buf.append (this.name);
+	buf.append (name);
 
-	if (this.acc != null)
+	if (acc != null)
 	{
 
 	    buf.append (".");
-	    buf.append (this.acc);
+	    buf.append (acc);
 
 	}
 
-	if (this.isBracketed ())
+	if (isBracketed ())
 	{
 
 	    buf.insert (0,
@@ -243,7 +248,8 @@ public class SaveValue extends ValueExpression
 
     }
 
-    public boolean hasFixedResult (Query q)
+    @Override
+	public boolean hasFixedResult (final Query q)
     {
 
 	// A save value cannot have a fixed result.

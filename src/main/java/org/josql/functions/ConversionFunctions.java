@@ -19,10 +19,9 @@ import java.util.HashMap;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Calendar;
-
 import java.text.SimpleDateFormat;
 
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 /**
  * Note: creating new instances of SimpleDateFormat objects are VERY costly over

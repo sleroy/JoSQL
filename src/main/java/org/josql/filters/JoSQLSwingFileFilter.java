@@ -19,7 +19,7 @@ import java.io.File;
 import javax.swing.filechooser.FileFilter;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * A {@link FileFilter} that uses a JoSQL statement to provide the filtering.

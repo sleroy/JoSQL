@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * This class represents a list of expressions used within a SQL statement.

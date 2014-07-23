@@ -23,10 +23,9 @@ import com.gentlyweb.utils.Getter;
 
 import org.josql.Query;
 import org.josql.QueryResults;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
-
 import org.josql.events.*;
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 
 public class SubQueryExpression extends ValueExpression implements BindVariableChangedListener,
 						   	           SaveValueChangedListener

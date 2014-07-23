@@ -19,15 +19,13 @@ import java.util.TreeMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Iterator;
-
 import java.lang.reflect.Constructor;
 
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.internal.Setter;
 import org.josql.internal.Utilities;
-
 import org.josql.Query;
-import org.josql.QueryParseException;
-import org.josql.QueryExecutionException;
 
 public class NewObjectExpression extends ValueExpression
 {

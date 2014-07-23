@@ -15,7 +15,7 @@
 package org.josql.expressions;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 public abstract class ValueExpression extends Expression
 {

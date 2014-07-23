@@ -18,7 +18,7 @@ import java.util.logging.Filter;
 import java.util.logging.LogRecord;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * A {@link Filter} that uses a JoSQL statement to provide the filtering.

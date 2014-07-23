@@ -15,7 +15,7 @@
 package org.josql.expressions;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 /**
  * Represents an "IS NULL" (or "IS NOT NULL") expression.

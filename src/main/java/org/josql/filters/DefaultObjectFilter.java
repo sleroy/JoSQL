@@ -17,7 +17,7 @@ package org.josql.filters;
 import com.gentlyweb.utils.StringUtils;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * A general purpose object filter that uses a JoSQL statement to provide the filtering.

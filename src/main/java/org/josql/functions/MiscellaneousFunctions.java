@@ -15,7 +15,6 @@
 package org.josql.functions;
 
 import java.io.File;
-
 import java.util.Random;
 import java.util.List;
 import java.util.Date;
@@ -25,8 +24,7 @@ import java.util.HashMap;
 
 import com.gentlyweb.utils.Getter;
 
-import org.josql.QueryExecutionException;
-
+import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.Expression;
 
 public class MiscellaneousFunctions extends AbstractFunctionHandler

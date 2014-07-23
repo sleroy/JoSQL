@@ -18,18 +18,15 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 import com.gentlyweb.utils.Getter;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
-import org.josql.QueryParseException;
-
 import org.josql.internal.Utilities;
-
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.functions.NotFixedResults;
 
 /**

@@ -14,30 +14,45 @@
  */
 package org.josql;
 
-import java.io.StringReader;
 import java.io.BufferedReader;
-
-import java.util.Map;
-import java.util.HashMap;
-import java.util.SortedMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
+import java.io.StringReader;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 
+import org.josql.events.BindVariableChangedEvent;
+import org.josql.events.BindVariableChangedListener;
+import org.josql.events.SaveValueChangedEvent;
+import org.josql.events.SaveValueChangedListener;
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
+import org.josql.expressions.AliasedExpression;
+import org.josql.expressions.BindVariable;
+import org.josql.expressions.ConstantExpression;
+import org.josql.expressions.Expression;
+import org.josql.expressions.Function;
+import org.josql.expressions.SaveValue;
+import org.josql.expressions.SelectItemExpression;
+import org.josql.functions.CollectionFunctions;
+import org.josql.functions.ConversionFunctions;
+import org.josql.functions.FormattingFunctions;
+import org.josql.functions.FunctionHandler;
+import org.josql.functions.GroupingFunctions;
+import org.josql.functions.MiscellaneousFunctions;
+import org.josql.functions.StringFunctions;
+import org.josql.internal.GroupByExpressionComparator;
+import org.josql.internal.Grouper;
+import org.josql.internal.Limit;
+import org.josql.internal.ListExpressionComparator;
+import org.josql.internal.OrderBy;
 import org.josql.parser.JoSQLParser;
+import org.josql.utils.Timer;
 
-import org.josql.expressions.*;
-
-import org.josql.functions.*;
-
-import org.josql.internal.*;
-
-import org.josql.events.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /** 
  * This class provides the ability for a developer to apply an arbitrary SQL statement
@@ -112,53 +127,45 @@ public class Query
     public static final String ORDER_BY_ASC = "ASC";
     public static final String ORDER_BY_DESC = "DESC";
 
-    public static final List nullQueryList = new ArrayList ();
+    public static final List<Object> nullQueryList = Lists.newArrayList(new Object());
 
-    static
-    {
-
-	Query.nullQueryList.add (new Object ());
-
-    }
-
-    private List bfhs = new ArrayList ();
-    private Map bfhsMap = new HashMap ();
+    private List<Object> bfhs = Lists.newArrayList();
+    private Map<Object, Object> bfhsMap = Maps.newHashMap();
 
     private char wildcardChar = '%';
 
-    private Map aliases = new HashMap ();
-    private List groupBys = null;
-    private Comparator orderByComp = null;
-    private Comparator groupOrderByComp = null;
-    private Grouper grouper = null;
-    private List orderBys = null;
-    private List groupOrderBys = null;
-    private List cols = null;
+    private Map aliases = Maps.newHashMap();
+    private List groupBys;
+    private Comparator orderByComp;
+    private Comparator groupOrderByComp;
+	protected Grouper grouper;
+    private List orderBys;
+    private List groupOrderBys;
+    protected List cols;
     private boolean retObjs = false;
-    private Expression where = null;
-    private Expression having = null;
-    private Map bindVars = null;
-    private String query = null;
-    private boolean wantTimings = false;
-    private List functionHandlers = null;
+    private Expression where;
+    private Expression having;
+    private Map bindVars;
+    private String query;
+    private List functionHandlers;
     private int anonVarIndex = 1;
-    private Expression from = null;
-    private Class objClass = null;
-    private Limit limit = null;
-    private Limit groupByLimit = null;
-    private Map executeOn = null;
+    private Expression from;
+    private Class objClass;
+    private Limit limit;
+    private Limit groupByLimit;
+    private Map executeOn;
     private boolean isParsed = false;
     private boolean distinctResults = false;
-    private ClassLoader classLoader = null;
-    private Query parent = null;
-    private Map listeners = new HashMap ();
+    private ClassLoader classLoader;
+    private Query parent;
+    private Map listeners= Maps.newHashMap();
 
     // Execution data.
-    private transient Object currentObject = null;
-    private transient List allObjects = null;
-    private transient List currGroupBys = null;
+    private transient Object currentObject;
+    protected transient List allObjects;
+    private transient List currGroupBys;
 
-    private QueryResults qd = null;
+    private QueryResults qd;
 
     /**
      * Return the WHERE clause expression.
@@ -168,7 +175,7 @@ public class Query
     public Expression getWhereClause ()
     {
 
-	return this.where;
+	return where;
 
     }
 
@@ -180,7 +187,7 @@ public class Query
     public Expression getHavingClause ()
     {
 
-	return this.having;
+	return having;
 
     }
 
@@ -192,104 +199,95 @@ public class Query
     public Comparator getOrderByComparator ()
     {
 
-	return this.orderByComp;
+	return orderByComp;
 
     }
 
-    public FunctionHandler getFunctionHandler (String id)
+    public FunctionHandler getFunctionHandler (final String id)
     {
 
-	if (this.parent != null)
-	{
+    	if (parent != null)
+    	{
 
-	    return this.parent.getFunctionHandler (id);
+    		return parent.getFunctionHandler (id);
 
-	}
+    	}
 
-	return (FunctionHandler) this.bfhsMap.get (id);
+    	return (FunctionHandler) bfhsMap.get (id);
 
     }
 
-    private void initFunctionHandlers ()
-    {
+    private void initFunctionHandlers() {
 
-	FunctionHandler o = new CollectionFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (CollectionFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
-
-	o = new StringFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (StringFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
-
-	o = new ConversionFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (ConversionFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
-
-	o = new FormattingFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (FormattingFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
-
-	o = new GroupingFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (GroupingFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
-
-	o = new MiscellaneousFunctions ();
-	o.setQuery (this);
-
-	this.bfhsMap.put (MiscellaneousFunctions.HANDLER_ID,
-			  o);
-
-	this.bfhs.add (o);
+		FunctionHandler o = new CollectionFunctions ();
+		o.setQuery (this);
+		
+		bfhsMap.put(CollectionFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new StringFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put(StringFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new ConversionFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (ConversionFunctions.HANDLER_ID, o);
+	
+		bfhs.add(o);
+	
+		o = new FormattingFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (FormattingFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
+	
+		o = new GroupingFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (GroupingFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
+	
+		o = new MiscellaneousFunctions ();
+		o.setQuery (this);
+	
+		bfhsMap.put (MiscellaneousFunctions.HANDLER_ID, o);
+	
+		bfhs.add (o);
 
     }
 
-    public Map getExecuteOnFunctions ()
-    {
+    public Map getExecuteOnFunctions () {
 
-	return this.executeOn;
+    	return executeOn;
 
     }
 
-    public void setExecuteOnFunctions (Map ex)
-    {
+    public void setExecuteOnFunctions(final Map ex) {
 
-	this.executeOn = ex;
+    	executeOn = ex;
 
     }
 
     public String getAnonymousBindVariableName ()
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getAnonymousBindVariableName ();
+	    return parent.getAnonymousBindVariableName ();
 
 	}
 
-	String n = Query.INT_BIND_VAR_PREFIX + this.anonVarIndex;
+	String n = Query.INT_BIND_VAR_PREFIX + anonVarIndex;
 
-	this.anonVarIndex++;
+	anonVarIndex++;
 
 	return n;
 
@@ -298,127 +296,127 @@ public class Query
     public List getDefaultFunctionHandlers ()
     {
 
-	if (this.parent != null)
-	{
-
-	    return this.parent.getDefaultFunctionHandlers ();
-
-	}
-
-	return new ArrayList (this.bfhs);
-
-    }
-
-    public List getFunctionHandlers ()
-    {
-
-	if (this.parent != null)
-	{
-
-	    return this.parent.getFunctionHandlers ();
-
-	}
-
-	return this.functionHandlers;
+		if (parent != null) {
+	
+		    return parent.getDefaultFunctionHandlers ();
+	
+		}
+	
+		return Lists.newArrayList(bfhs);
 
     }
 
-    public void addFunctionHandler (Object o)
-    {
+    public List getFunctionHandlers() {
 
-	if (this.parent != null)
-	{
+		if (parent != null) {
+	
+		    return parent.getFunctionHandlers();
+	
+		}
 
-	    this.parent.addFunctionHandler (o);
-
-	}
-
-	if (this.functionHandlers == null)
-	{
-
-	    this.functionHandlers = new ArrayList ();
-
-	}
-
-	if (o instanceof FunctionHandler)
-	{
-
-	    FunctionHandler fh = (FunctionHandler) o;
-
-	    fh.setQuery (this);
-
-	}
-
-	this.functionHandlers.add (o);
+		return functionHandlers;
 
     }
 
-    public void setFrom (Expression exp)
+    public void addFunctionHandler (final Object o) {
+
+		if (parent != null) {
+	
+		    parent.addFunctionHandler(o);
+	
+		}
+	
+		if (functionHandlers == null) {
+	
+		    functionHandlers = Lists.newArrayList();
+	
+		}
+	
+		if (o instanceof FunctionHandler)
+		{
+	
+		    FunctionHandler fh = (FunctionHandler) o;
+	
+		    fh.setQuery (this);
+	
+		}
+	
+		functionHandlers.add(o);
+
+    }
+
+    public void setFrom (final Expression exp)
     {
 
-	this.from = exp;
+	from = exp;
 
     }
 
     public Expression getFrom ()
     {
 
-	return this.from;
+	return from;
 
     }
 
-    public void setClassName (String n)
+    public void setClassName (final String n)
     {
 
 	ConstantExpression ce = new ConstantExpression ();
-	this.from = ce;
+	from = ce;
 	ce.setValue (n);
 
     }
 
-    public void setOrderByColumns (List cols)
+    public void setOrderByColumns (final List cols)
     {
 
-	this.orderBys = cols;
+	orderBys = cols;
 
     }
 
-    public void setGroupByLimit (Limit g)
+    public void setGroupByLimit (final Limit g)
     {
 
-	this.groupByLimit = g;
+	groupByLimit = g;
 
     }
+    
+    public Limit getGroupByLimit() {
+    	
+    	return groupByLimit;
+    	
+    }
 
-    public void setGroupByOrderColumns (List cols)
+    public void setGroupByOrderColumns (final List cols)
     {
 
-	this.groupOrderBys = cols;
+	groupOrderBys = cols;
 
     }
 
     public List getGroupByColumns ()
     {
 
-	return this.groupBys;
+	return groupBys;
 
     }
 
-    public void setGroupByColumns (List cols)
+    public void setGroupByColumns (final List cols)
     {
 
-	this.groupBys = cols;
+	groupBys = cols;
 
     }
 
     public List getColumns ()
     {
 
-	return this.cols;
+	return cols;
 
     }
 
-    public void setColumns (List cols)
+    public void setColumns (final List cols)
     {
 
 	this.cols = cols;
@@ -431,10 +429,10 @@ public class Query
      *
      * @param be The expression.
      */
-    public void setHaving (Expression be)
+    public void setHaving (final Expression be)
     {
 
-	this.having = be;
+	having = be;
 
     }
 
@@ -444,10 +442,10 @@ public class Query
      *
      * @param be The expression.
      */
-    public void setWhere (Expression be)
+    public void setWhere (final Expression be)
     {
 
-	this.where = be;
+	where = be;
 
     }
 
@@ -457,44 +455,10 @@ public class Query
     public Query ()
     {
 
-	this.initFunctionHandlers ();
+	initFunctionHandlers ();
 
     }
-
-    public void setWantTimings (boolean v)
-    {
-
-	this.wantTimings = v;
-
-    }
-
-    protected void addTiming (String id,
-			      double time)
-    {
-
-	if (this.wantTimings)
-	{
-
-	    if (this.qd == null)
-	    {
-
-		return;
-
-	    }
-
-	    if (this.qd.timings == null)
-	    {
-
-		this.qd.timings = new LinkedHashMap ();
-
-	    }
-
-	    this.qd.timings.put (id,
-				 new Double (time));
-
-	}
-
-    }
+    
 
     /**
      * Get the value of an indexed bind variable.
@@ -502,13 +466,13 @@ public class Query
      * @param index The index.
      * @return The value.
      */
-    public Object getVariable (int index)
+    public Object getVariable (final int index)
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getVariable (index);
+	    return parent.getVariable (index);
 
 	}
 
@@ -522,7 +486,7 @@ public class Query
      * @param name The name of the variable.
      * @return The Class.
      */
-    public Class getVariableClass (String name)
+    public Class getVariableClass (final String name)
     {
 
 	String n = name.toLowerCase ();
@@ -547,7 +511,7 @@ public class Query
 	{
 
 	    // May be null if we aren't processing a while/having expression.
-	    return this.objClass;
+	    return objClass;
 
 	}
 
@@ -559,21 +523,21 @@ public class Query
 
 	}
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getVariableClass (n);
+	    return parent.getVariableClass (n);
 
 	}
 
-	if (this.bindVars == null)
+	if (bindVars == null)
 	{
 
 	    return Object.class;
 
 	}
 
-	Object v = (Object) this.bindVars.get (n);
+	Object v = bindVars.get (n);
 
 	if (v == null)
 	{
@@ -592,14 +556,14 @@ public class Query
      * @param ind The variable index.
      * @return The value.
      */
-    public Object getGroupByVariable (int ind)
+    public Object getGroupByVariable (final int ind)
     {
 
 	// Get the current group bys.
-	if (this.currGroupBys != null)
+	if (currGroupBys != null)
 	{
 
-	    return this.currGroupBys.get (ind - 1);
+	    return currGroupBys.get (ind - 1);
 
 	}
 
@@ -613,7 +577,7 @@ public class Query
      * @param name The name of the bind variable.
      * @return The value.
      */
-    public Object getVariable (String name)
+    public Object getVariable (final String name)
     {
 
 	String n = name.toLowerCase ();
@@ -637,7 +601,7 @@ public class Query
 	{
 
 	    // Return the parent query.
-	    return this.parent;
+	    return parent;
 
 	}
 
@@ -645,7 +609,7 @@ public class Query
 	{
 
 	    // May be null if we aren't processing a while/having expression.
-	    return this.currentObject;
+	    return currentObject;
 
 	}
 
@@ -653,25 +617,25 @@ public class Query
 	{
 
 	    // May change depending upon when it is called.
-	    return this.allObjects;
+	    return allObjects;
 
 	}
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getVariable (name);
+	    return parent.getVariable (name);
 
 	}
 
-	if (this.bindVars == null)
+	if (bindVars == null)
 	{
 
 	    return null;
 
 	}
 
-	return this.bindVars.get (n);
+	return bindVars.get (n);
 
     }    
 
@@ -682,23 +646,23 @@ public class Query
      * @param v The value.
      */
     public void setVariable (String name,
-			     Object v)
+			     final Object v)
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    this.parent.setVariable (name,
+	    parent.setVariable (name,
 				     v);
 
 	    return;
 
 	}
 
-	if (this.bindVars == null)
+	if (bindVars == null)
 	{
 
-	    this.bindVars = new HashMap ();
+	    bindVars = Maps.newHashMap();
 
 	}
 
@@ -709,7 +673,7 @@ public class Query
             
         }
 
-	this.bindVars.put (name.toLowerCase (),
+	bindVars.put (name.toLowerCase (),
 			   v);
 
     }
@@ -720,14 +684,14 @@ public class Query
      * @param index The index.
      * @param v The value.
      */
-    public void setVariable (int    index,
-			     Object v)
+    public void setVariable (final int    index,
+			     final Object v)
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    this.parent.setVariable (index,
+	    parent.setVariable (index,
 				     v);
 
 	    return;
@@ -747,14 +711,14 @@ public class Query
     public Map getVariables ()
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getVariables ();
+	    return parent.getVariables ();
 
 	}
 
-	return this.bindVars;
+	return bindVars;
 
     }
 
@@ -764,20 +728,19 @@ public class Query
      * @param o The object to evaluate the WHERE clause against.
      * @return The result of calling: Expression.isTrue(Object,Query) for the WHERE clause.
      */
-    public boolean isWhereTrue (Object o)
+    public boolean isWhereTrue (final Object o)
                                 throws QueryExecutionException 
     {
 
-	if (this.where == null)
-	{
-
-	    // A null where means yes!
-	    return true;
-
-	}
-
-	return this.where.isTrue (o,
-				  this);
+		if (where == null)
+		{
+	
+		    // A null where means yes!
+		    return true;
+	
+		}
+	
+		return where.isTrue (o, this);
 
     }
 
@@ -786,29 +749,24 @@ public class Query
      *
      * @param bVars The bind variable name/value mappings.
      */
-    public void setVariables (Map bVars)
-    {
+    public void setVariables (final Map bVars) {
 
-	if (this.parent != null)
-	{
+    	if (parent != null) {
 
-	    this.parent.setVariables (bVars);
+    		parent.setVariables (bVars);
+    		return;
 
-	    return;
+    	}
 
-	}
-
-        Iterator iter = bVars.keySet ().iterator ();
+        Iterator iter = bVars.keySet().iterator();
         
-        while (iter.hasNext ())
-        {
+        while (iter.hasNext()) {
             
             Object k = iter.next ();
             
-            if (k instanceof Number)
-            {
+            if (k instanceof Number) {
                 
-                this.setVariable (((Number) k).intValue (),
+                this.setVariable (((Number) k).intValue(),
                                   bVars.get (k));
                 
             } else {
@@ -822,93 +780,17 @@ public class Query
 
     }
 
-    /**
-     * Execute all the expressions for the specified type, either: {@link #ALL} or:
-     * {@link #RESULTS}.  If the expressions are aliased then the results will be
-     * available in the save results upon completion.
-     *
-     * @param l The List of objects to execute the functions on.
-     * @param t The type of expressions to execute.
-     * @throws QueryExecutionException If there is an issue with executing one of the
-     *                                 expressions or if the Query hasn't been inited yet.
-     */
-    public void doExecuteOn (List   l,
-			     String t)
-	                     throws QueryExecutionException
-    {
-
-        if (this.executeOn == null)
-        {
-            
-            // Do nothing.
-            return;
-            
-        }
-
-	if (!this.isParsed)
-	{
-
-	    throw new QueryExecutionException ("Query has not been initialised.");
-
-	}
-
-	if (this.executeOn != null)
-	{
-
-	    // Set the "all objects".
-	    this.allObjects = l;
-
-	    long s = System.currentTimeMillis ();
-
-	    List fs = (List) this.executeOn.get (t);
-
-	    if (fs != null)
-	    {
-
-		// Execute each one in turn.
-		int si = fs.size (); 
-
-		for (int i = 0; i < si; i++)
-		{
-
-		    AliasedExpression f = (AliasedExpression) fs.get (i);
-
-		    Object o = f.getValue (null,
-					   this);
-		    
-		    String af = f.getAlias ();
-
-		    if (af != null)
-		    {
-
-			this.setSaveValue (af,
-					   o);
-			
-		    }
-		    
-		}
-
-		this.addTiming ("Total time to execute: " + si + " expression(s) on " + t + " objects",
-				System.currentTimeMillis () - s);	
-
-	    }
-
-	}
-
-    }
 
     /**
      * This method will be called at the end of a query execution to clean up the
      * transient objects used throughout execution.
      */
-    private void clearResults ()
-    {
+    protected void clearResults () {
 
-	this.qd = null;
-
-	this.currentObject = null;
-	this.allObjects = null;
-        this.currGroupBys = null;
+    	qd = null;
+    	currentObject = null;
+    	allObjects = null;
+        currGroupBys = null;
 
     }
 
@@ -920,59 +802,18 @@ public class Query
      * @return The list of objects that match the query.
      * @throws QueryExecutionException If the query cannot be executed.
      */
-    public QueryResults execute (Iterator iter)
-	                         throws   QueryExecutionException
-    {
+    public QueryResults execute (final Iterator<?> iter)
+	                         throws QueryExecutionException {
 
-	if ((iter == null)
-	    &&
-	    (this.objClass != null)
-	   )
-	{
+    	if ((iter == null) && (objClass != null)) {
 
-	    throw new QueryExecutionException ("Iterator must be non-null when an object class is specified.");
+    		throw new QueryExecutionException ("Iterator must be non-null when an object class is specified.");
 
-	}
+    	}
 		
-        List l = new ArrayList ();
-        
-        while (iter.hasNext ())
-        {
-            
-            l.add (iter.next ());
-            
-        }
+        List<Object> l = Lists.newArrayList(iter);
                 
-	return this.execute (l);
-
-    }
-
-    /**
-     * Execute this query on the specified objects.  It should be noted that the collection
-     * is first converted to a List and then passed to the {@link #execute(List)} method for execution.
-     *
-     * @param objs The collection of objects to execute the query on.
-     * @return The list of objects that match the query.
-     * @throws QueryExecutionException If the query cannot be executed.
-     */
-    public QueryResults execute (Collection objs)
-	                         throws     QueryExecutionException
-    {
-
-	if ((objs == null)
-	    &&
-	    (this.objClass != null)
-	   )
-	{
-
-	    throw new QueryExecutionException ("Collection of objects must be non-null when an object class is specified.");
-
-	}
-		
-        List l = new ArrayList (objs.size ());
-        l.addAll (objs);
-                
-	return this.execute (l);
+        return this.execute(l);
 
     }
 
@@ -983,589 +824,22 @@ public class Query
      * @return The list of objects that match the query.
      * @throws QueryExecutionException If the query cannot be executed.
      */
-    public QueryResults execute (List   objs)
-	                         throws QueryExecutionException
-    {
-
-	if ((objs == null)
-	    &&
-	    (this.objClass != null)
-	   )
-	{
-
-	    throw new QueryExecutionException ("List of objects must be non-null when an object class is specified.");
-
-	}
-
-	this.qd = new QueryResults ();
-
-	if ((this.objClass == null)
-	    &&
-	    (objs == null)
-	   )
-	{
-
-	    objs = Query.nullQueryList;
-
-	}
-
-	this.allObjects = objs;
-
-	// See if we have any expressions that are to be executed on 
-	// the complete set.
-	this.doExecuteOn (objs,
-		          Query.ALL);
-
-        this.evalWhereClause ();
-
-	// See if we have any functions that are to be executed on 
-	// the results...
-        this.doExecuteOn (this.qd.results,
-                          Query.RESULTS);
-
-	// If we have a "having" clause execute it here...
-        this.evalHavingClause ();
-
-	// Now perform the group by operation.
-        if (this.grouper != null)
-        {
-            
-            this.evalGroupByClause ();
-            
-            return this.qd;
-        
-        }
-
-	// Now perform the order by.
-        this.evalOrderByClause ();
-
-	// Finally, if we have a limit clause, restrict the set of objects returned...
-        this.evalLimitClause ();
-
-        this.evalSelectClause ();
-
-	try
-	{
-
-	    return this.qd;
-
-	} finally {
-
-	    // Clean up ;)
-	    this.clearResults ();
-
-	}
-
-    }
-
-    private void evalSelectClause ()
-                                   throws QueryExecutionException
-    {
-        
-	boolean retNewObjs = false;
-
-	// See if we are a single column of new objects.
-	if (!this.retObjs)
-	{
-
-	    if (this.cols.size () == 1)
-	    {
-
-		SelectItemExpression sei = (SelectItemExpression) this.cols.get (0);
-		
-		if (sei.getExpression () instanceof NewObjectExpression)
-		{
-
-		    retNewObjs = true;
-		    
-		}
-
-	    }
-
-	}
-
-	long s = System.currentTimeMillis ();
-
-	// Now get the columns if necessary, we do this here to get the minimum
-	// set of objects required.
-	if ((!this.retObjs)
-	    &&
-	    (!retNewObjs)
-	   )
-	{
-
-	    Collection resC = null;
-
-	    if (!this.distinctResults)
-	    {
-
-		resC = new ArrayList (this.qd.results.size ());
-
-	    } else {
-
-		resC = new LinkedHashSet (this.qd.results.size ());
-
-	    }
-
-	    // Get the column values.
-	    this.getColumnValues (this.qd.results,
-				  resC);
-
-	    if (this.distinctResults)
-	    {
-
-		this.qd.results = new ArrayList (resC);
-
-	    } else {
-
-		this.qd.results = (List) resC;
-
-	    }
-
-	    this.addTiming ("Collection of results took",
-			    (double) (System.currentTimeMillis () - s));
-
-	} else {
-
-	    if (this.retObjs)
-	    {
-
-		if (this.distinctResults)
-		{
-
-		    s = System.currentTimeMillis ();
-		    
-		    this.qd.results = ((CollectionFunctions) this.getFunctionHandler (CollectionFunctions.HANDLER_ID)).unique (this.qd.results);
-		    
-		    this.addTiming ("Collecting unique results took",
-				    (double) (System.currentTimeMillis () - s));
-
-		}
-
-	    }
-
-	    // If we want a single column of new objects...
-	    if (retNewObjs)
-	    {
-
-		this.qd.results = this.getNewObjectSingleColumnValues (this.qd.results);
-
-	    }
-
-	}        
-        
-    }
-
-    private void evalOrderByClause ()
-                                    throws QueryExecutionException
-    {
-        
-	if ((this.qd.results.size () > 1)
-	    &&
-	    (this.orderByComp != null)
-	   )
-	{
-
-	    long s = System.currentTimeMillis ();
-
-	    // It should be noted here that the comparator will set the
-	    // "current object" so that it can be used in the order by
-	    // clause.
-	    Collections.sort (this.qd.results,
-			      this.orderByComp);
-
-	    this.addTiming ("Total time to order results",
-			    System.currentTimeMillis () - s);	
-
-	}
-
-	if (this.orderByComp != null)
-	{
-
-	    ListExpressionComparator lec = (ListExpressionComparator) this.orderByComp;
-
-	    if (lec.getException () != null)
-	    {
-
-		throw new QueryExecutionException ("Unable to order results",
-						   lec.getException ());
-
-	    }
-
-	    lec.clearCache ();
-
-	}
-        
-    }
-
-    private void evalGroupByClause ()
-                                    throws QueryExecutionException
-    {
-     
-        long s = System.currentTimeMillis ();
-     
-        // Need to handle the fact that this will return a Map of Lists...
-        try
-        {
-
-            s = System.currentTimeMillis ();
-
-            // Group the objects.
-            Map mres = this.grouper.group (this.qd.results);
-
-            this.qd.groupByResults = mres;
-
-            List grpBys = new ArrayList (mres.keySet ());
-
-            // Convert the keys in the group by to a List.
-            Map origSvs = this.qd.saveValues;
-
-            Map nres = new LinkedHashMap ();
-
-            int gs = grpBys.size ();
-
-            // Now for each "group by" list, do:
-            // 1. Execute the functions for the GROUP_BY_RESULTS type.
-            // 2. Sort the group by results according to the ORDER BY clause.
-            // 3. Limit the group by results according to the LIMIT clause.
-            for (int i = 0; i < gs; i++)
-            {
-
-                List l = (List) grpBys.get (i);
-
-                List lr = (List) mres.get (l);
-
-                this.allObjects = lr;
-                this.currGroupBys = l;
-
-                // Now set the save values for the group bys.
-                if (this.qd.groupBySaveValues == null)
-                {
-
-                    this.qd.groupBySaveValues = new HashMap ();
-
-                }
-
-                this.qd.saveValues = new HashMap ();
-
-                if (origSvs != null)
-                {
-
-                    this.qd.saveValues.putAll (origSvs);
-                    
-                }
-
-                this.qd.groupBySaveValues.put (l,
-                                               this.qd.saveValues);
-
-                // Now execute all (any) group by results functions.
-                this.doExecuteOn (lr,
-                                  Query.GROUP_BY_RESULTS);
-
-                // Now sort these according to the order by (if any).
-                if ((lr.size () > 1)
-                    &&
-                    (this.orderByComp != null)
-                   )
-                {
-
-                    Collections.sort (lr,
-                                      this.orderByComp);
-
-                    ListExpressionComparator lec = (ListExpressionComparator) this.orderByComp;
-
-                    if (lec.getException () != null)
-                    {
-
-                        throw new QueryExecutionException ("Unable to order group by results",
-                                                           lec.getException ());
-
-                    }
-
-                    lec.clearCache ();
-
-                }
-
-                if (!this.retObjs)
-                {
-
-                    // Now collect the values...
-                    Collection res = null;
-
-                    if (!this.distinctResults)
-                    {
-
-                        res = new ArrayList ();
-
-                    } else {
-
-                        res = new LinkedHashSet ();
-
-                    }
-
-                    this.getColumnValues (lr,
-                                          res);
-
-                    if (this.distinctResults)
-                    {
-
-                        lr = new ArrayList (res);
-
-                    } else {
-
-                        lr = (List) res;
-
-                    }
-
-                } else {
-
-                    if (this.distinctResults)
-                    {
-
-                        this.qd.results = ((CollectionFunctions) this.getFunctionHandler (CollectionFunctions.HANDLER_ID)).unique (this.qd.results);
-
-                    }
-
-                }
-
-                nres.put (l,
-                          lr);
-
-            }
-
-            // Restore the save values.
-            this.qd.saveValues = origSvs;
-
-            // Set the group by results.
-            this.qd.groupByResults = nres;
-
-            long t = System.currentTimeMillis ();
-
-            this.addTiming ("Group column collection and sort took",
-                            (double) (t - s));
-            
-            s = t;
-            
-            // Now order the group bys, if present.
-            if (this.groupOrderByComp != null)
-            {
-
-                origSvs = this.qd.saveValues;
-
-                Collections.sort (grpBys,
-                                  this.groupOrderByComp);
-
-                // "Restore" the save values.
-                this.qd.saveValues = origSvs;
-
-                GroupByExpressionComparator lec = (GroupByExpressionComparator) this.groupOrderByComp;
-
-                if (lec.getException () != null)
-                {
-
-                    throw new QueryExecutionException ("Unable to order group bys, remember that the current object here is a java.util.List, not the class defined in the FROM clause, you may need to use the org.josq.functions.CollectionFunctions.get(java.util.List,Number) function to get access to the relevant value from the List.",
-                                                       lec.getException ());
-
-                }
-
-                lec.clearCache ();
-
-            }
-
-            // Now limit the group bys, if required.
-            if (this.groupByLimit != null)
-            {
-
-                s = System.currentTimeMillis ();
-                
-                List oGrpBys = grpBys;
-                
-                grpBys = this.groupByLimit.getSubList (grpBys,
-                                                       this);
-                
-                // Now trim out from the group by results any list that isn't in the current grpbys.
-                for (int i = 0; i < oGrpBys.size (); i++)
-                {
-
-                    List l = (List) oGrpBys.get (i);
-
-                    if (!grpBys.contains (l))
-                    {
-                        
-                        // Remove.
-                        this.qd.groupByResults.remove (l);
-                        
-                    }
-                    
-                }
-                
-                this.addTiming ("Total time to limit group by results size",
-                                System.currentTimeMillis () - s);	
-
-            }
-
-            this.addTiming ("Group operation took",
-                            (double) (System.currentTimeMillis () - s));
-
-            // "Restore" the save values.
-            this.qd.saveValues = origSvs;
-
-            this.qd.results = grpBys;
-            
-            // NOW limit the group by results to a certain size, this needs
-            // to be done last so that the group by limit clause can make use of the size of the
-            // results.
-            if (this.limit != null)
-            {
-                
-                for (int i = 0; i < this.qd.results.size (); i++)
-                {
-
-                    List l = (List) this.qd.results.get (i);
-
-                    List lr = (List) this.qd.groupByResults.get (l);
-
-                    this.allObjects = lr;
-                    this.currGroupBys = l;
-            
-                    this.qd.saveValues = (Map) this.qd.groupBySaveValues.get (l);
-                        
-                    this.qd.groupByResults.put (l,
-                                                this.limit.getSubList (lr,
-                                                                       this));
-                
-                }            
-
-            }
-
-            this.qd.saveValues = origSvs;
-
-        } catch (Exception e) {
-
-            throw new QueryExecutionException ("Unable to perform group by operation",
-                                               e);
-
-        }
-                                   
-    }                                    
-
-    private void evalHavingClause ()
-                                   throws QueryExecutionException
-    {
+    public QueryResults execute (final Collection<?> _objs)
+	                         throws QueryExecutionException {
+    		
+    	List<Object> objs = Lists.newArrayList(_objs);
+    	
+    	QueryExecutor process = new QueryExecutor(this, objs, objClass);
+    	process.execute();
+    	
+    	return qd;
+
+    }                              
     
-    	if (this.having != null)
-	{
 
-	    int si = this.qd.results.size (); 
+    public void setCurrentGroupByObjects (final List objs) {
 
-	    this.qd.havingResults = new ArrayList (si);
-
-	    for (int i = 0; i < si; i++)
-	    {
-
-		Object o = this.qd.results.get (i);
-
-		this.currentObject = o;
-
-		if (this.having.isTrue (o,
-					this))
-		{
-
-		    this.qd.havingResults.add (o);
-
-		}
-
-	    }	    
-
-	    this.qd.results = this.qd.havingResults;
-
-	    // Future proofing...
-	    this.allObjects = this.qd.results;
-
-	}
-        
-    }
-
-    private void evalLimitClause ()
-                                  throws QueryExecutionException
-    {
-        
-        if (this.limit != null)
-	{
-
-	    long s = System.currentTimeMillis ();
-
-	    this.qd.results = this.limit.getSubList (this.qd.results,
-						     this);
-
-	    this.addTiming ("Total time to limit results size",
-			    System.currentTimeMillis () - s);	
-
-	}
-    }
-
-    private void evalWhereClause ()
-                                  throws QueryExecutionException
-    {
-        
-        long s = System.currentTimeMillis ();
-        
-        int si = this.allObjects.size ();
-        
-        if (this.where != null)
-	{
-
-	    // Create the where results with "about" half the size of the input collection.
-	    // Further optimizations may be possible here if some statistics are collected
-	    // about how many objects match/fail the where clause and then increase the
-	    // capacity of the where results list as required, i.e. to cut down on the number
-	    // of array copy and allocation operations performed.  For now though half will do ;)
-	    this.qd.whereResults = new ArrayList (si / 2);
-
-	    for (int i = 0; i < si; i++)
-	    {
-
-		Object o = this.allObjects.get (i);
-
-		this.currentObject = o;
-
-		boolean res = this.where.isTrue (o,
-						 this);
-
-		if (res)
-		{
-
-		    this.qd.whereResults.add (o);
-
-		}
-
-	    }
-
-	} else {
-
-	    // No limiting where clause so what's passed in is what comes out.
-	    this.qd.whereResults = this.allObjects;
-
-	}
-
-	double wet = (double) System.currentTimeMillis () - (double) s;
-
-	this.addTiming ("Total time to execute Where clause on all objects",
-			wet);
-	this.addTiming ("Where took average over: " + si + " objects",
-			wet / (double) si);
-
-	this.allObjects = this.qd.whereResults;
-
-	// The results here are the result of executing the where clause, if present.
-	this.qd.results = this.qd.whereResults;
-
-    }
-
-    public void setCurrentGroupByObjects (List objs)
-    {
-
-	this.currGroupBys = objs;
+    	currGroupBys = objs;
 
     }
 
@@ -1576,24 +850,24 @@ public class Query
      *
      * @return The list of objects in context.
      */
-    public List getAllObjects ()
+    public List<Object> getAllObjects ()
     {
 
-	return this.allObjects;
+    	return allObjects;
 
     }
 
-    public void setAllObjects (List objs)
+    public void setAllObjects (final List<Object> objs)
     {
 
-	this.allObjects = objs;
+	allObjects = objs;
 
     }
 
-    public void setCurrentObject (Object o)
+    public void setCurrentObject (final Object o)
     {
 
-	this.currentObject = o;
+	currentObject = o;
 
     }
 
@@ -1603,209 +877,74 @@ public class Query
      *
      * @return The current object in context.
      */
-    public Object getCurrentObject ()
-    {
+    public Object getCurrentObject() {
 
-	return this.currentObject;
+    	return currentObject;
 
     }
 
-    private void getColumnValues (List       res,
-				  Collection rs)
-	                          throws     QueryExecutionException
-    {
+    public void setSaveValues(final Map s) {
 
-	int s = res.size ();
-
-	int cs = this.cols.size ();
-
-	boolean addItems = false;
-
-	for (int i = 0; i < s; i++)
-	{
-
-	    Object o = res.get (i);
-
-	    this.currentObject = o;
-
-	    List sRes = new ArrayList (cs);
-
-	    for (int j = 0; j < cs; j++)
-	    {
-
-		SelectItemExpression v = (SelectItemExpression) this.cols.get (j);
-
-		try
+		if (parent != null)
 		{
-
-		    if (v.isAddItemsFromCollectionOrMap ())
-		    {
-
-			addItems = true;
-			    
-		    }
+	
+			Map<Object, Object> values = Maps.newHashMap();
+			values.putAll(parent.qd.getSaveValues());
+			values.putAll(s);
+			parent.qd.setSaveValues(values);
 			
-		    // Get the value from the object...
-		    Object ov = v.getValue (o,
-					    this);
-		    
-		    if (addItems)
-		    {
-			    
-			rs.addAll (v.getAddItems (ov));
-			
-		    } else {
-			
-			sRes.add (ov);
-			
-		    }
-		    
-		    // Now since the expression can set the current object, put it
-		    // back to rights after the call...
-		    this.currentObject = o;
-
-		} catch (Exception e) {
-
-		    throw new QueryExecutionException ("Unable to get value for column: " +
-						       j + 
-						       " for: " +
-						       v.toString () + 
-						       " from result: " +
-						       i + 
-						       " (" +
-						       o + 
-						       ")",
-						       e);
-							   
+//		    parent.qd.saveValues.putAll(s);
+	
+		    return;
+	
 		}
-		
-	    }
-
-	    if (!addItems)
-	    {
-
-		rs.add (sRes);
-
-	    }
-
-	}
-
-    }
-
-    private List getNewObjectSingleColumnValues (List   rows)
-	                                         throws QueryExecutionException
-    {
-
-	int s = rows.size ();
-
-	SelectItemExpression nsei = (SelectItemExpression) this.cols.get (0);
-
-	List res = new ArrayList (s);
-
-	for (int i = 0; i < s; i++)
-	{
-
-	    Object o = rows.get (i);
-
-	    this.currentObject = o;
-
-	    try
-	    {
-
-		res.add (nsei.getValue (o,
-					this));
-
-		// Now since the expression can set the current object, put it
-		// back to rights after the call...
-		this.currentObject = o;
-
-	    } catch (Exception e) {
-
-		throw new QueryExecutionException ("Unable to get value for column: " +
-						   1 + 
-						   " for: " +
-						   nsei.toString () + 
-						   " from result: " +
-						   i + 
-						   " (" +
-						   o + 
-						   ")",
-						   e);
-							   
-	    }
-
-	}
-
-	return res;
-
-    }
-
-    public void setSaveValues (Map s)
-    {
-
-	if (this.parent != null)
-	{
-
-	    this.parent.qd.saveValues.putAll (s);
-
-	    return;
-
-	}
-
-	this.qd.saveValues = s;
+	
+		qd.setSaveValues(s);
 
     }
     
     public void setSaveValue (Object id,
-			      Object value)
+			      final Object value)
     {
 
-	if (this.parent != null)
-	{
-
-	    this.parent.setSaveValue (id,
-				      value);
-
-	    return;
-
-	}
-
-	if (this.qd == null)
-	{
-
-	    return;
-
-	}
-
-	if (id instanceof String)
-	{
-
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	Object old = this.qd.saveValues.get (id);
-
-	this.qd.saveValues.put (id,
-				value);
-
-	if (old != null)
-	{
-
-	    this.fireSaveValueChangedEvent (id,
-					    old,
-					    value);
-
-	}
+		if (parent != null) {
+	
+		    parent.setSaveValue(id, value);
+		    return;
+	
+		}
+	
+		if (qd == null) {
+	
+		    return;
+	
+		}
+	
+		if (id instanceof String)
+		{
+	
+		    id = ((String) id).toLowerCase();
+	
+		}
+	
+		Object old = qd.getSaveValues().get(id);
+	
+		qd.getSaveValues().put(id,value);
+	
+		if (old != null) {
+	
+		    fireSaveValueChangedEvent(id, old, value);
+	
+		}
 
     }
 
-    protected void fireSaveValueChangedEvent (Object id,
-					      Object from,
-					      Object to)
+    protected void fireSaveValueChangedEvent (final Object id,
+					      final Object from,
+					      final Object to)
     {
 
-	List l = (List) this.listeners.get ("svs");
+	List l = (List) listeners.get ("svs");
 
 	if ((l == null)
 	    ||
@@ -1833,12 +972,12 @@ public class Query
 
     }
 
-    protected void fireBindVariableChangedEvent (String name,
-						 Object from,
-						 Object to)
+    protected void fireBindVariableChangedEvent (final String name,
+						 final Object from,
+						 final Object to)
     {
 
-	List l = (List) this.listeners.get ("bvs");
+	List l = (List) listeners.get ("bvs");
 
 	if ((l == null)
 	    ||
@@ -1873,28 +1012,24 @@ public class Query
      * @param gbs The group by list key.
      * @return The object the key maps to.
      */
-    public Object getGroupBySaveValue (Object id,
-				       List   gbs)
-    {
+    public Object getGroupBySaveValue (final Object id,
+				       final List   gbs) {
 
-	if (this.parent != null)
-	{
-
-	    return this.getGroupBySaveValue (id,
-					     gbs);
-
-	}
-
-	Map m = this.getGroupBySaveValues (gbs);
-
-	if (m == null)
-	{
-
-	    return null;
-
-	}
-
-	return m.get (id);
+		if (parent != null) {
+	
+		    return getGroupBySaveValue(id, gbs);
+	
+		}
+	
+		Map m = getGroupBySaveValues (gbs);
+	
+		if (m == null) {
+	
+		    return null;
+	
+		}
+	
+		return m.get(id);
 
     }
 
@@ -1904,19 +1039,19 @@ public class Query
      * @param gbs The group bys.
      * @return The save values (name/value pairs).
      */
-    public Map getGroupBySaveValues (List gbs)
+    public Map getGroupBySaveValues (final List gbs)
     {
 
-	if (this.parent != null)
+	if (parent != null)
 	{
 
-	    return this.parent.getGroupBySaveValues (gbs);
+	    return parent.getGroupBySaveValues (gbs);
 
 	}
 
-	if ((this.qd == null)
+	if ((qd == null)
 	    ||
-	    (this.qd.groupBySaveValues == null)
+	    (qd.groupBySaveValues == null)
 	   )
 	{
 
@@ -1924,7 +1059,7 @@ public class Query
 
 	}
 
-	return (Map) this.qd.groupBySaveValues.get (gbs);
+	return (Map) qd.groupBySaveValues.get (gbs);
 
     }
 
@@ -1933,34 +1068,22 @@ public class Query
      *
      * @return The object the key maps to.
      */
-    public Object getSaveValue (Object id)
+    public Object getSaveValue (final Object id)
     {
 
-	if (this.parent != null)
-	{
-
-	    return this.parent.getSaveValue (id);
-
-	}
-
-	if ((this.qd == null)
-	    ||
-	    (this.qd.saveValues == null)
-	   )
-	{
-
-	    return null;
-
-	}
-
-	if (id instanceof String)
-	{
-
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	return this.qd.saveValues.get (id);
+		if (parent != null) {
+			
+		    return parent.getSaveValue (id);
+	
+		}
+	
+		if (qd == null) {
+	
+		    return null;
+	
+		}
+	
+		return qd.getSaveValue(id);
 
     }
 
@@ -1972,23 +1095,9 @@ public class Query
     public String getQuery ()
     {
 
-	return this.query;
+	return query;
 
     }
-
-    /**
-     * Sets the comparator to use to perform per object comparisons.
-     *
-     * @param c The comparator.
-     */
-/*
-    public void setObjectComparator (Comparator c)
-    {
-        
-        XXX
-        
-    }
-*/
 
     /**
      * Will cause the order by comparator used to order the results
@@ -2001,26 +1110,26 @@ public class Query
 	                               throws QueryParseException
     {
 
-	if (this.orderBys != null)
+	if (orderBys != null)
 	{
 	    
 	    // No caching, this may need to change in the future.
-	    this.orderByComp = new ListExpressionComparator (this,
+	    orderByComp = new ListExpressionComparator (this,
 							     false);
 
-	    ListExpressionComparator lec = (ListExpressionComparator) this.orderByComp;
+	    ListExpressionComparator lec = (ListExpressionComparator) orderByComp;
 
 	    // Need to check the type of each order by, if we have
 	    // any "column" indexes check to see if they are an accessor...
-	    int si = this.orderBys.size (); 
+	    int si = orderBys.size (); 
 
 	    for (int i = 0; i < si; i++)
 	    {
 
-		OrderBy ob = (OrderBy) this.orderBys.get (i);
+		OrderBy ob = (OrderBy) orderBys.get (i);
 
 		// Get the expression...
-		Expression e = (Expression) ob.getExpression ();
+		Expression e = ob.getExpression ();
 
 		if (e == null)
 		{
@@ -2036,26 +1145,26 @@ public class Query
 
 		    }
 
-		    if (this.retObjs)
+		    if (retObjs)
 		    {
 
 			throw new QueryParseException ("Cannot sort on a select column index when the objects are to be returned.");
 
 		    }
 
-		    if (ci > this.cols.size ())
+		    if (ci > cols.size ())
 		    {
 
 			throw new QueryParseException ("Invalid order by column index: " + 
 						       ci + 
 						       ", only: " +
-						       this.cols.size () + 
+						       cols.size () + 
 						       " columns are selected to be returned.");
 
 		    }
 
 		    // Get the SelectItemExpression.
-		    SelectItemExpression sei = (SelectItemExpression) this.cols.get (ci - 1);
+		    SelectItemExpression sei = (SelectItemExpression) cols.get (ci - 1);
 
 		    // Get the expression...
 		    e = sei.getExpression ();
@@ -2123,65 +1232,63 @@ public class Query
      * @throws QueryExecutionException If the call to: {@link #execute(List)} fails.
      * @see #reorder(List,String)
      */
-    public QueryResults reorder (List      objs,
-				 SortedMap dirs)
+    public QueryResults reorder (final List objs,
+				 final SortedMap dirs)
 	                         throws QueryExecutionException,
 					QueryParseException
     {
 
-	if (this.isWantObjects ())
-	{
-
-	    throw new QueryParseException ("Only SQL statements that return columns (not the objects passed in) can be re-ordered.");
-
-	}
-
-	List obs = new ArrayList ();
-
-	Iterator iter = dirs.keySet ().iterator ();
-
-	while (iter.hasNext ())
-	{
-
-	    Integer in = (Integer) iter.next ();
-	    
-	    // See if we have a column for it.
-	    if (in.intValue () > this.cols.size ())
-	    {
-
-		throw new QueryParseException ("Cannot reorder: " +
-					       dirs.size () + 
-					       " columns, only: " +
-					       this.cols.size () + 
-					       " are present in the SQL statement.");
-
-	    }
-
-	    String dir = (String) dirs.get (in);
-	    
-	    int d = OrderBy.ASC;
-	    
-	    if (dir.equals (Query.ORDER_BY_DESC))
-	    {
-
-		d = OrderBy.DESC;
-		
-	    }
-	    
-	    OrderBy ob = new OrderBy ();
-	    ob.setIndex (in.intValue ());
-	    ob.setType (d);
-	    
-	    obs.add (ob);
-	    
-	}
-
-	this.orderBys = obs;
+		if (isWantObjects()) {
 	
-	this.initOrderByComparator ();
-
-	// Execute the query.
-	return this.execute (objs);	
+		    throw new QueryParseException(
+		    		"Only SQL statements that return columns "
+		    		+ "(not the objects passed in) can be re-ordered.");
+	
+		}
+	
+		List obs = Lists.newArrayList();
+	
+		Iterator iter = dirs.keySet().iterator();
+	
+		while (iter.hasNext ()) {
+	
+		    Integer in = (Integer) iter.next ();
+		    
+		    // See if we have a column for it.
+		    if (in.intValue () > cols.size ()) {
+	
+			throw new QueryParseException ("Cannot reorder: " +
+						       dirs.size () + 
+						       " columns, only: " +
+						       cols.size () + 
+						       " are present in the SQL statement.");
+	
+		    }
+	
+		    String dir = (String) dirs.get (in);
+		    
+		    int d = OrderBy.ASC;
+		    
+		    if (dir.equals(Query.ORDER_BY_DESC)) {
+	
+		    	d = OrderBy.DESC;
+			
+		    }
+		    
+		    OrderBy ob = new OrderBy();
+		    ob.setIndex(in.intValue());
+		    ob.setType(d);
+		    
+		    obs.add(ob);
+		    
+		}
+	
+		orderBys = obs;
+		
+		initOrderByComparator();
+	
+		// Execute the query.
+		return this.execute(objs);	
 
     }
 
@@ -2216,79 +1323,76 @@ public class Query
      * @throws QueryExecutionException If the call to: {@link #execute(List)} fails.
      * @see #reorder(List,SortedMap)
      */
-    public QueryResults reorder (List   objs,
-				 String orderBys)
+    public QueryResults reorder (final List   objs,
+				 final String orderBys)
 	                         throws QueryParseException,
 					QueryExecutionException
     {
 
-	String sql = "";
-
-	if (!orderBys.toLowerCase ().startsWith ("order by"))
-	{
-
-	    sql = sql + " ORDER BY ";
-
-	}
-	    
-	sql = sql + orderBys;
-
-	BufferedReader sr = new BufferedReader (new StringReader (sql));
-
-	JoSQLParser parser = new JoSQLParser (sr);
-
-	List ors = null;
-
-	try
-	{
-
-	     ors = parser.OrderBys ();
-
-	} catch (Exception e) {
-
-	    throw new QueryParseException ("Unable to parse order bys: " + 
-					   orderBys,
-					   e);
-
-	}	
-
-	this.orderBys = ors;
-
-	this.initOrderByComparator ();
-
-	// Execute the query.
-	return this.execute (objs);
+    	StringBuilder sql = new StringBuilder();
+	
+		if (!orderBys.toLowerCase().startsWith("order by")) {
+			
+			sql.append(" ORDER BY ");
+	
+		}
+		
+		sql.append(orderBys);
+	
+		BufferedReader sr = new BufferedReader (new StringReader(sql.toString()));
+	
+		JoSQLParser parser = new JoSQLParser (sr);
+	
+		List<Object> ors;
+	
+		try {
+	
+		     ors = parser.OrderBys();
+	
+		} catch (Exception e) {
+	
+		    throw new QueryParseException ("Unable to parse order bys: " + 
+						   orderBys, e);
+	
+		}	
+	
+		this.orderBys = ors;
+	
+		initOrderByComparator();
+	
+		// Execute the query.
+		return this.execute(objs);
 
     }
 
-    public void setClassLoader (ClassLoader cl)
+    public void setClassLoader (final ClassLoader cl)
     {
 
-	this.classLoader = cl;
+	classLoader = cl;
 
     }
 
     public ClassLoader getClassLoader ()
     {
 
-	if (this.classLoader == null)
+	if (classLoader == null)
 	{
 
 	    // No custom classloader specified, use the one that loaded
 	    // this class.
-            this.classLoader = Thread.currentThread ().getContextClassLoader ();
+            classLoader = Thread.currentThread ().getContextClassLoader ();
 
 	}
 
-	return this.classLoader;
+	return classLoader;
 
     }
 
-    public Class loadClass (String name)
+    public Class loadClass (final String name)
 	                    throws Exception
     {
 
-	return this.getClassLoader ().loadClass (name);
+	return getClassLoader ().loadClass (name);
 
     }
 
@@ -2298,43 +1402,39 @@ public class Query
      * @param q The query string.
      * @throws QueryParseException If the query cannot be parsed and/or {@link #init() inited}.
      */
-    public void parse (String q)
-	               throws QueryParseException
-    {
+    public void parse (final String q)
+	               throws QueryParseException {
 
-	this.query = q;
-
-	BufferedReader sr = new BufferedReader (new StringReader (q));
-
-	long s = System.currentTimeMillis ();
-
-	JoSQLParser parser = new JoSQLParser (sr);
-
-	this.addTiming ("Time to init josql parser object",
-			System.currentTimeMillis () - s);
-
-	s = System.currentTimeMillis ();
-
-	try
-	{
-
-	    parser.parseQuery (this);
-
-	} catch (Exception e) {
-
-	    throw new QueryParseException ("Unable to parse query: " + 
-					   q,
-					   e);
-
-	}
-
-	this.isParsed = true;
-
-	this.addTiming ("Time to parse query into object form",
-			System.currentTimeMillis () - s);
-
-	// Init the query.
-	this.init ();
+		query = q;
+		
+		qd = new QueryResults();
+	
+		BufferedReader sr = new BufferedReader (new StringReader (q));
+	
+		Timer timer = qd.getTimeEvaluator().newTimer("Time to init josql parser object");
+		timer.start();	
+	
+		JoSQLParser parser = new JoSQLParser (sr);
+	
+		timer.stop();
+	
+		timer = qd.getTimeEvaluator().newTimer("Time to parse query into object form");
+		timer.start();
+		
+		try {
+	
+		    parser.parseQuery (this);
+	
+		} catch (Exception e) {
+	
+		    throw new QueryParseException ("Unable to parse query: " + q, e);
+		}
+	
+		isParsed = true;
+	
+		timer.stop();
+	
+		init();	// Init the query.
 
     }
 
@@ -2342,33 +1442,33 @@ public class Query
                                       throws QueryParseException
     {
 
-        if (this.parent == null)
+        if (parent == null)
 	{
 
-	    if (!(this.from instanceof ConstantExpression))
+	    if (!(from instanceof ConstantExpression))
 	    {
 
 		throw new QueryParseException ("The FROM clause of the outer-most Query must be a string that denotes a fully-qualified class name, expression: " +
-					       this.from + 
+					       from + 
 					       " is not valid.");
 
 	    }
 
 	    // See if the class name is the special "null".
-	    String cn = null;
+	    String cn;
 
 	    try
 	    {
 
 		// Should be safe to use a null value here (especially since we know
 		// how ConstantExpression works ;)
-		cn = (String) this.from.getValue (null,
+		cn = (String) from.getValue (null,
 						  this);
 
 	    } catch (Exception e) {
 		
 		throw new QueryParseException ("Unable to determine FROM clause of the outer-most Query from expression: " +
-					       this.from +
+					       from +
 					       ", note: this exception shouldn't be able to happen, so something has gone SERIOUSLY wrong!",
 					       e);
 		
@@ -2381,7 +1481,7 @@ public class Query
 		try
 		{
 		    
-		    this.objClass = this.loadClass (cn);
+		    objClass = loadClass (cn);
 
 		} catch (Exception e) {
 		    
@@ -2397,120 +1497,101 @@ public class Query
         
     }
 
-    public void init ()
-                      throws QueryParseException
-    {
+    public void init() throws QueryParseException {
 
-	long s = System.currentTimeMillis ();
+    	Timer timer = qd.getTimeEvaluator()
+    			.newTimer("Time to init Query objects");
+    	timer.start();
+    	
+    	// If we don't have a parent, then there must be an explicit class name.
+    	initFromObjectClass();
 
-	// If we don't have a parent, then there must be an explicit class name.
-	this.initFromObjectClass ();
+    	// Now if we have any columns, init those as well...
+        initSelect ();
 
-	// Now if we have any columns, init those as well...
-        this.initSelect ();
+        // Now init the where clause (where possible)...
+        if (where != null) {
 
-	// Now init the where clause (where possible)...
-	if (this.where != null)
-	{
+        	where.init(this);
+        	
+        }
 
-	    this.where.init (this);
+		// Now init the having clause (where possible)...
+		if (having != null) {
+	
+		    having.init(this);
+	
+		}
 
-	}
+		// See if we have order by columns, if so init the comparator.
+		initOrderByComparator ();
 
-	// Now init the having clause (where possible)...
-	if (this.having != null)
-	{
+		// See if we have order by columns, if so init the comparator.
+		if (groupBys != null) {
+	
+			initGroupBys ();
+	
+		}
 
-	    this.having.init (this);
+        initGroupOrderBys ();
 
-	}
+		if (groupByLimit != null) {
+	
+		    groupByLimit.init(this);
+	
+		}
+	
+		if (limit != null) {
+	
+		    limit.init (this);
+	
+		}
 
-	// See if we have order by columns, if so init the comparator.
-	this.initOrderByComparator ();
+        initExecuteOn ();
 
-	// See if we have order by columns, if so init the comparator.
-	if (this.groupBys != null)
-	{
-
-            this.initGroupBys ();
-
-	}
-
-        this.initGroupOrderBys ();
-
-	if (this.groupByLimit != null)
-	{
-
-	    this.groupByLimit.init (this);
-
-	}
-
-	if (this.limit != null)
-	{
-
-	    this.limit.init (this);
-
-	}
-
-        this.initExecuteOn ();
-
-	this.addTiming ("Time to init Query objects",
-			System.currentTimeMillis () - s);
-
+        timer.stop();
+        
     }
 
-    private void initSelect ()
-                             throws QueryParseException
-    {
+    private void initSelect () throws QueryParseException {
         
-        if (this.retObjs)
-	{
+        if (retObjs) {
             
-            // Nothing to do.
-            return;
+        	return;		// Nothing to do.
             
         }
         
         int aic = 0;
 
-        int si = this.cols.size ();
+        int si = cols.size ();
 
-        this.aliases = new HashMap ();
+        aliases = Maps.newHashMap();
 
-        for (int i = 0; i < si; i++)
-        {
+        for (int i = 0; i < si; i++) {
 
-            SelectItemExpression exp = (SelectItemExpression) this.cols.get (i);
+            SelectItemExpression exp = (SelectItemExpression) cols.get(i);
 
             exp.init (this);
 
-            if (exp.isAddItemsFromCollectionOrMap ())
-            {
+            if (exp.isAddItemsFromCollectionOrMap()) {
 
                 aic++;
 
             }
 
-            String alias = exp.getAlias ();
+            String alias = exp.getAlias();
 
-            if (alias != null)
-            {
+            if (alias != null) {
 
-                this.aliases.put (alias,
-                                  Integer.valueOf (i + 1));
+                aliases.put (alias, Integer.valueOf (i + 1));
 
             } 
 
-            this.aliases.put ((i + 1) + "",
-                              Integer.valueOf (i + 1));
+            aliases.put ((i + 1) + "", Integer.valueOf (i + 1));
 
         }
 
-        if ((aic > 0)
-            &&
-            (aic != si)
-           )
-        {
+        if ((aic > 0) && (aic != si)) {
 
             throw new QueryParseException ("If one or more SELECT clause columns is set to add the items returned from a: " +
                                            Map.class.getName () + 
@@ -2522,21 +1603,19 @@ public class Query
         
     }
 
-    private void initGroupBys ()
-                               throws QueryParseException
-    {
+    private void initGroupBys () throws QueryParseException {
         
-        this.grouper = new Grouper (this);
+        grouper = new Grouper (this);
 
-        int si = this.groupBys.size (); 
+        int si = groupBys.size (); 
 
         for (int i = 0; i < si; i++)
         {
 
-            OrderBy ob = (OrderBy) this.groupBys.get (i);
+            OrderBy ob = (OrderBy) groupBys.get (i);
 
             // Get the expression...
-            Expression e = (Expression) ob.getExpression ();
+            Expression e = ob.getExpression ();
 
             if (e == null)
             {
@@ -2552,26 +1631,26 @@ public class Query
 
                 }
 
-                if (this.retObjs)
+                if (retObjs)
                 {
 
                     throw new QueryParseException ("Cannot sort on a select column index when the objects are to be returned.");
 
                 }
 
-                if (ci > this.cols.size ())
+                if (ci > cols.size ())
                 {
 
                     throw new QueryParseException ("Invalid order by column index: " + 
                                                    ci + 
                                                    ", only: " +
-                                                   this.cols.size () + 
+                                                   cols.size () + 
                                                    " columns are selected to be returned.");
 
                 }
 
                 // Get the SelectItemExpression.
-                SelectItemExpression sei = (SelectItemExpression) this.cols.get (ci - 1);
+                SelectItemExpression sei = (SelectItemExpression) cols.get (ci - 1);
 
                 // Get the expression...
                 e = sei.getExpression ();
@@ -2583,7 +1662,7 @@ public class Query
 
             }
 
-            this.grouper.addExpression (e);
+            grouper.addExpression (e);
 
         }
         
@@ -2593,7 +1672,7 @@ public class Query
                                 throws QueryParseException
     {
     
-    	if (this.executeOn == null)
+    	if (executeOn == null)
 	{
             
             return;
@@ -2601,7 +1680,7 @@ public class Query
         }
     
         // Get the supported types.
-        List allF = (List) this.executeOn.get (Query.ALL);
+        List allF = (List) executeOn.get (Query.ALL);
 
         if (allF != null)
         {
@@ -2620,7 +1699,7 @@ public class Query
 
         }
 
-        List resultsF = (List) this.executeOn.get (Query.RESULTS);
+        List resultsF = (List) executeOn.get (Query.RESULTS);
 
         if (resultsF != null)
         {
@@ -2639,7 +1718,7 @@ public class Query
 
         }
 
-        resultsF = (List) this.executeOn.get (Query.GROUP_BY_RESULTS);
+        resultsF = (List) executeOn.get (Query.GROUP_BY_RESULTS);
 
         if (resultsF != null)
         {
@@ -2664,7 +1743,7 @@ public class Query
                                     throws QueryParseException
     {
         
-        if (this.groupOrderBys == null)
+        if (groupOrderBys == null)
 	{
             
             // Nothing to do.
@@ -2672,7 +1751,7 @@ public class Query
             
         }
         
-        if (this.grouper == null)
+        if (grouper == null)
         {
 
             throw new QueryParseException ("Group Order Bys are only valid if 1 or more Group By columns have been specified.");
@@ -2681,26 +1760,25 @@ public class Query
 
         // Here we "override" the from class because when dealing with the order bys the
         // current object will be a List, NOT the class defined in the FROM clause.
-        Class c = this.objClass;
+        Class c = objClass;
 
-        this.objClass = List.class;
+        objClass = List.class;
 
         // No caching, this may need to change in the future.
-        this.groupOrderByComp = new GroupByExpressionComparator (this,
-                                                                 false);
+        groupOrderByComp = new GroupByExpressionComparator (this, false);
 
-        GroupByExpressionComparator lec = (GroupByExpressionComparator) this.groupOrderByComp;
+        GroupByExpressionComparator lec = (GroupByExpressionComparator) groupOrderByComp;
 
-        List grouperExps = this.grouper.getExpressions ();
+        List grouperExps = grouper.getExpressions();
 
         // Need to check the type of each order by, if we have
         // any "column" indexes check to see if they are an accessor...
-        int si = this.groupOrderBys.size (); 
+        int si = groupOrderBys.size (); 
 
         for (int i = 0; i < si; i++)
         {
 
-            OrderBy ob = (OrderBy) this.groupOrderBys.get (i);
+            OrderBy ob = (OrderBy) groupOrderBys.get (i);
 
             if (ob.getIndex () > -1)
             {
@@ -2736,7 +1814,7 @@ public class Query
             }
 
             // Get the expression...
-            Expression e = (Expression) ob.getExpression ();
+            Expression e = ob.getExpression ();
 
             // See if the expression is a "direct" match for any of the
             // group by columns.
@@ -2795,7 +1873,7 @@ public class Query
         }
 
         // Restore the FROM object class.
-        this.objClass = c;
+        objClass = c;
         
     }
 
@@ -2811,24 +1889,24 @@ public class Query
      *
      * @param c The FROM class.
      */
-    public void setFromObjectClass (Class c)
+    public void setFromObjectClass (final Class c)
     {
 
-	this.objClass = c;
+	objClass = c;
 
     }
 
     public Class getFromObjectClass ()
     {
 
-	return this.objClass;
+	return objClass;
 
     }
 
-    public void removeBindVariableChangedListener (BindVariableChangedListener bvl)
+    public void removeBindVariableChangedListener (final BindVariableChangedListener bvl)
     {
 
-	List l = (List) this.listeners.get ("bvs");
+	List l = (List) listeners.get ("bvs");
 
 	if (l == null)
 	{
@@ -2841,17 +1919,17 @@ public class Query
 
     }
 
-    public void addBindVariableChangedListener (BindVariableChangedListener bvl)
+    public void addBindVariableChangedListener (final BindVariableChangedListener bvl)
     {
 
-	List l = (List) this.listeners.get ("bvs");
+	List l = (List) listeners.get ("bvs");
 
 	if (l == null)
 	{
 
-	    l = new ArrayList ();
+	    l = Lists.newArrayList();
 
-	    this.listeners.put ("bvs",
+	    listeners.put ("bvs",
 				l);
 
 	}
@@ -2865,10 +1943,10 @@ public class Query
 
     }
 
-    public void removeSaveValueChangedListener (SaveValueChangedListener svl)
+    public void removeSaveValueChangedListener (final SaveValueChangedListener svl)
     {
 
-	List l = (List) this.listeners.get ("svs");
+	List l = (List) listeners.get ("svs");
 
 	if (l == null)
 	{
@@ -2881,17 +1959,17 @@ public class Query
 
     }
 
-    public void addSaveValueChangedListener (SaveValueChangedListener svl)
+    public void addSaveValueChangedListener (final SaveValueChangedListener svl)
     {
 
-	List l = (List) this.listeners.get ("svs");
+	List l = (List) listeners.get ("svs");
 
 	if (l == null)
 	{
 
-	    l = new ArrayList ();
+	    l = Lists.newArrayList();
 
-	    this.listeners.put ("svs",
+	    listeners.put ("svs",
 				l);
 
 	}
@@ -2908,7 +1986,7 @@ public class Query
     public Map getAliases ()
     {
 
-	return this.aliases;
+	return aliases;
 
     }
 
@@ -2920,7 +1998,7 @@ public class Query
     public boolean isWantObjects ()
     {
 
-	return this.retObjs;
+	return retObjs;
 
     }
 
@@ -2930,10 +2008,10 @@ public class Query
      *
      * @param v Set to <code>true</code> to indicate that the query should return objects.
      */
-    public void setWantObjects (boolean v)
+    public void setWantObjects (final boolean v)
     {
 
-	this.retObjs = v;
+	retObjs = v;
 
     }
 
@@ -2945,7 +2023,7 @@ public class Query
     public char getWildcardCharacter ()
     {
 
-	return this.wildcardChar;
+	return wildcardChar;
 
     }
 
@@ -2954,10 +2032,10 @@ public class Query
      *
      * @param c The char.
      */
-    public void setWildcardCharacter (char c)
+    public void setWildcardCharacter (final char c)
     {
 
-	this.wildcardChar = c;
+	wildcardChar = c;
 
     }
 
@@ -2967,10 +2045,10 @@ public class Query
      *
      * @param l The object.
      */
-    public void setLimit (Limit l)
+    public void setLimit (final Limit l)
     {
 
-	this.limit = l;
+	limit = l;
 
     }
 
@@ -2982,7 +2060,7 @@ public class Query
     public Limit getLimit ()
     {
 
-	return this.limit;
+	return limit;
 
     }
 
@@ -2995,7 +2073,7 @@ public class Query
     public boolean parsed ()
     {
 
-	return this.isParsed;
+	return isParsed;
 
     }
 
@@ -3004,11 +2082,17 @@ public class Query
      *
      * @param v Set to <code>true</code> to make the results distinct.
      */
-    public void setWantDistinctResults (boolean v)
+    public void setWantDistinctResults (final boolean v)
     {
 
-	this.distinctResults = v;
+    	distinctResults = v;
 
+    }
+    
+    public boolean getWantDistinctResults() {
+    	
+    	return distinctResults;
+    	
     }
 
     /**
@@ -3018,9 +2102,7 @@ public class Query
      */
     public QueryResults getQueryResults ()
     {
-
-	return this.qd;
-
+    	return qd;
     }
 
     /**
@@ -3036,10 +2118,9 @@ public class Query
      *
      * @return The order bys.
      */
-    public List getOrderByColumns ()
-    {
+    public List<Object> getOrderByColumns() {
 
-	return new ArrayList (this.orderBys);
+    	return Lists.newArrayList(orderBys);
 
     }
 
@@ -3049,10 +2130,9 @@ public class Query
      *
      * @param q The parent query.
      */
-    public void setParent (Query q)
-    {
+    public void setParent (final Query q) {
 
-	this.parent = q;
+    	parent = q;
 
     }
 
@@ -3061,10 +2141,9 @@ public class Query
      *
      * @return The query, will be <code>null</code> if there is no parent.
      */
-    public Query getParent ()
-    {
+    public Query getParent() {
 
-	return this.parent;
+    	return parent;
 
     }
 
@@ -3074,29 +2153,17 @@ public class Query
      *
      * @return The top level query, will be <code>null</code> if there is no parent.
      */
-    public Query getTopLevelQuery ()
-    {
+    public Query getTopLevelQuery () {
 
-	Query q = this;
-	Query par = null;
-
-	while (true)
-	{
-
-	    par = q.getParent ();
-
-	    if (par == null)
-	    {
-
-		break;
-
-	    }
-
-	    q = par;
-
-	}
-
-	return q;
+    	Query parent = getParent();
+    	
+    	if (parent != null) {
+    		
+    		return parent.getTopLevelQuery();
+    		
+    	}
+    	
+    	return this;
 
     }
 
@@ -3106,60 +2173,52 @@ public class Query
      *
      * @return The reconstructed query.
      */
-    public String toString ()
+    @Override
+	public String toString ()
     {
 
-	StringBuffer buf = new StringBuffer ("SELECT ");
+    	StringBuffer buf = new StringBuffer("SELECT ");
 	
-	if (this.distinctResults)
-	{
-
-	    buf.append ("DISTINCT ");
-
-	}
-
-	if (this.retObjs)
-	{
-
-	    buf.append ("*");
-
-	} else {
-
-	    for (int i = 0; i < this.cols.size (); i++)
-	    {
-
-		buf.append (" ");
-		buf.append (this.cols.get (i));
-
-		if (i < (this.cols.size () - 1))
-		{
-
-		    buf.append (",");
-
+		if (distinctResults) {
+	
+		    buf.append ("DISTINCT ");
+	
 		}
-	    
-	    }
-
-	}
-
-	buf.append (" FROM ");	
-	buf.append (this.from);
-
-	if (this.where != null)
-	{
-
-	    buf.append (" WHERE ");
 	
-	    buf.append (this.where);
-
-	}
-
-	return buf.toString ();
+		if (retObjs) {
+	
+		    buf.append("*");
+	
+		} else {
+	
+		    for (int i = 0; i < cols.size (); i++) {
+	
+				buf.append(" ").append(cols.get(i));
+		
+				if (i < (cols.size () - 1)) {
+		
+				    buf.append(",");
+		
+				}
+		    
+		    }
+	
+		}
+	
+		buf.append (" FROM ").append (from);
+	
+		if (where != null) {
+	
+		    buf.append(" WHERE ").append(where);
+	
+		}
+	
+		return buf.toString();
 
     }
 
-    public static QueryResults parseAndExec (String query,
-                                             List   objs)
+    public static QueryResults parseAndExec (final String query,
+                                             final List<Object> objs)
                                              throws QueryParseException,
                                                     QueryExecutionException
     {
@@ -3167,8 +2226,14 @@ public class Query
         Query q = new Query ();
         q.parse (query);
         
-        return q.execute (objs);
+        return q.execute(objs);
         
     }
+    
+    public Comparator getGroupOrderByComp() {
+    	
+		return groupOrderByComp;
+		
+	}
 
 }

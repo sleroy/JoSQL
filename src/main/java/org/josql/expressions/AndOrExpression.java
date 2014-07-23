@@ -15,7 +15,7 @@
 package org.josql.expressions;
 
 import org.josql.Query;
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 /**
  * Represents either an <code>AND</code> expression or a <code>OR</code> expression.

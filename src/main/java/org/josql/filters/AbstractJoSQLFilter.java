@@ -15,7 +15,7 @@
 package org.josql.filters;
 
 import org.josql.Query;
-import org.josql.QueryParseException;
+import org.josql.exceptions.QueryParseException;
 
 /**
  * This class just provides a base-abstract implementation that allow "Filters" to be

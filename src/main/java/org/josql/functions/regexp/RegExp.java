@@ -14,7 +14,7 @@
  */
 package org.josql.functions.regexp;
 
-import org.josql.QueryExecutionException;
+import org.josql.exceptions.QueryExecutionException;
 
 /**
  * Defines a regular expression, use the {@link RegExpFactory#getDefaultInstance()} to 

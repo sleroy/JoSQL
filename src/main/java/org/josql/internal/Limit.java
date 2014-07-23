@@ -17,11 +17,10 @@ package org.josql.internal;
 import java.util.List;
 import java.util.ArrayList;
 
+import org.josql.exceptions.QueryExecutionException;
+import org.josql.exceptions.QueryParseException;
 import org.josql.expressions.ValueExpression;
-
 import org.josql.Query;
-import org.josql.QueryParseException;
-import org.josql.QueryExecutionException;
 
 public class Limit
 {

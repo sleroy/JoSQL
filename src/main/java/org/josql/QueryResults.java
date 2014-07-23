@@ -16,7 +16,8 @@ package org.josql;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
+
+import org.josql.utils.TimeEvaluator;
 
 /**
  * This class holds all the "result" information about the execution of a particular
@@ -30,70 +31,82 @@ public class QueryResults
 {
 
     // Execution data.
-    Map saveValues = new HashMap ();
-    Map timings = null;
-    List results = null;
-    List whereResults = null;
-    List havingResults = null;
+    protected Map saveValues;
+    protected Map timings;
+    protected List results;
+    
+    public Map getGroupBySaveValues() {
+		return groupBySaveValues;
+	}
+
+	public void setGroupBySaveValues(final Map _groupBySaveValues) {
+		groupBySaveValues = _groupBySaveValues;
+	}
+
+	public void setResults(final List _results) {
+		results = _results;
+	}
+
+	public void setGroupByResults(final Map _groupByResults) {
+		groupByResults = _groupByResults;
+	}
+
+	List whereResults = null;
     Map groupByResults = null;
 
     Map groupBySaveValues = null;
+    
+    List<Result> globalResults;
+    private TimeEvaluator timeEvaluator;
 
-    public QueryResults ()
-    {
-
+    public QueryResults() {
+    	
+    	timeEvaluator = new TimeEvaluator();
+    	
     }
 
-    public Map getGroupBySaveValues (List k)
-    {
+    public Map getGroupBySaveValues(final List k) {
 
-	if (this.groupBySaveValues == null)
-	{
+    	if (groupBySaveValues == null) {
+    		
+    		return null;
+    		
+    	}
 
-	    return null;
-
-	}
-
-	return (Map) this.groupBySaveValues.get (k);
+    	return (Map) groupBySaveValues.get (k);
 
     }
 
     /**
      * Get the save values.
-     *
      * @return The save values.
      */
-    public Map getSaveValues ()
-    {
+    public Map getSaveValues () {
 
-	return this.saveValues;
+    	return saveValues;
 
     }
 
     /**
      * Get a particular save value for the passed in key.
-     *
      * @param id The key of the save value.
      * @return The value it maps to.
      */
-    public Object getSaveValue (Object id)
-    {
+    public Object getSaveValue (Object id) {
 
-	if (this.saveValues == null)
-	{
+    	if (getSaveValues() == null) {
 
-	    return null;
+    		return null;
 
-	}
+    	}
 
-	if (id instanceof String)
-	{
+		if (id instanceof String) {
+	
+		    id = ((String) id).toLowerCase();
+	
+		}
 
-	    id = ((String) id).toLowerCase ();
-
-	}
-
-	return this.saveValues.get (id);
+		return getSaveValues().get(id);
 
     }
 
@@ -106,8 +119,24 @@ public class QueryResults
     public List getResults ()
     {
 
-	return this.results;
+	return results;
 
+    }
+    
+    public List<Result> asList() {
+    	
+    	if (globalResults == null) {
+    	
+    		if (groupByResults != null) {
+    			globalResults = ResultFactory.createGroupByResult(groupByResults);
+    		}else{
+    			globalResults = ResultFactory.createResults(results);
+    		}
+    		
+    	}
+    	
+    	return globalResults;
+    	
     }
 
     /**
@@ -115,10 +144,9 @@ public class QueryResults
      *
      * @return The timings.
      */
-    public Map getTimings ()
-    {
+    public Map<String, Double> getTimings () {
 
-	return this.timings;
+    	return timeEvaluator.getMap(); //timings;
 
     }
 
@@ -130,32 +158,37 @@ public class QueryResults
     public Map getGroupByResults ()
     {
 
-	return this.groupByResults;
+	return groupByResults;
 
     }    
-
-    /**
-     * Get the having results.
-     *
-     * @return The having results.
-     */
-    public List getHavingResults ()
-    {
-
-	return this.havingResults;
-
-    }
 
     /**
      * Get the where results.
      *
      * @return The where results.
      */
-    public List getWhereResults ()
-    {
+    public List<Object> getWhereResults() {
 
-	return this.whereResults;
+    	return whereResults;
 
     }
+    
+    public void setWhereResults(final List<Object> _results) {
+    	
+    	whereResults = _results;
+    	
+    }
 
+	public void setSaveValues(final Map saveValues) {
+		
+		this.saveValues = saveValues;
+		
+	}
+	
+	public TimeEvaluator getTimeEvaluator() {
+		
+		return timeEvaluator;
+		
+	}
+	
 }
