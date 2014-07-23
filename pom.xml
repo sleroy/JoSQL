@@ -4,7 +4,7 @@
 	<groupId>com.tocea.framework.josql</groupId>
 	<artifactId>josql</artifactId>
 	<packaging>jar</packaging>
-	<version>2.3-SNAPSHOT</version>
+	<version>2.3</version>
 	<name>josql</name>
 	<url>http://github.com/sleroy/JoSQL</url>
 
@@ -39,24 +39,25 @@
 		</extensions>
 		<plugins>
 
-<!-- 			<plugin> -->
-<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
-<!-- 				<artifactId>maven-gpg-plugin</artifactId> -->
-<!-- 				<configuration> -->
-<!-- 					<passphrase>${gpg.passphrase}</passphrase> -->
-<!-- 					<useAgent>true</useAgent> -->
-<!-- 				</configuration> -->
-<!-- 				<version>1.4</version> -->
-<!-- 				<executions> -->
-<!-- 					<execution> -->
-<!-- 						<id>sign-artifacts</id> -->
-<!-- 						<phase>verify</phase> -->
-<!-- 						<goals> -->
-<!-- 							<goal>sign</goal> -->
-<!-- 						</goals> -->
-<!-- 					</execution> -->
-<!-- 				</executions> -->
-<!-- 			</plugin> -->
+ 			<plugin> 
+ 				<groupId>org.apache.maven.plugins</groupId> 
+ 				<artifactId>maven-gpg-plugin</artifactId> 
+ 				<configuration> -->
+ 					<passphrase>${gpg.passphrase}</passphrase> 
+ 					<useAgent>true</useAgent> 
+ 				</configuration> 
+ 				<version>1.4</version> 
+ 				<executions> 
+ 					<execution> 
+ 						<id>sign-artifacts</id> 
+ 						<phase>verify</phase> 
+ 						<goals> 
+ 							<goal>sign</goal> 
+ 						</goals> 
+ 					</execution> 
+ 				</executions> 
+ 			</plugin> 
+
 
 
 			<plugin>
