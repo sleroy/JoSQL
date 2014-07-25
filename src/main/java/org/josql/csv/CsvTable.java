@@ -24,6 +24,7 @@ public class CsvTable {
 	private Map<Class<?>, StringConverter<?>> converters;
 	private List<String> columnMapping;
 	private CsvOptions options;
+	private ClassLoader classLoader;
 	
 	private Timer readTimer;
 	
@@ -113,6 +114,17 @@ public class CsvTable {
 		for(Class<?> clazz : _converters.keySet()) {		
 			setConverter(clazz, _converters.get(clazz));			
 		}
+		
+	}
+	
+	/**
+	 * Defines the classLoader that will be used
+	 * in the JoSQL queries for this table
+	 * @param _classLoader
+	 */
+	public void setClassLoader(final ClassLoader _classLoader) {
+		
+		classLoader = _classLoader;
 		
 	}
 	
@@ -209,7 +221,7 @@ public class CsvTable {
 	 */
 	public CsvTableQuery query(final String _sql) throws QueryParseException {
 		
-		return new CsvTableQuery(this, _sql);
+		return new CsvTableQuery(this, _sql, classLoader);
 		
 	}
 	
