@@ -21,8 +21,24 @@ public class CsvTableQuery {
 	 */
 	public CsvTableQuery(final CsvTable _table, final String _sql) throws QueryParseException {
 		
+		this(_table, _sql, null);
+		
+	}
+	
+	/**
+	 * Build a JoSQL query from a CsvTable object and a SQL query string
+	 * @param _table the CsvTable on which the query will be executed
+	 * @param _sql the SQL query string
+	 * @param _classLoader the classLoader that will be used in the query
+	 * @throws QueryParseException
+	 */
+	public CsvTableQuery(final CsvTable _table, final String _sql, final ClassLoader _classLoader) throws QueryParseException {
+		
 		table = _table;
 		query = new Query();
+		if (_classLoader != null) {
+			query.setClassLoader(_classLoader);
+		}
 		query.parse(_sql);
 		
 	}

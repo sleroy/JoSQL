@@ -16,6 +16,7 @@ import org.josql.exceptions.QueryParseException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -23,6 +24,7 @@ public class AppTest {
 	
 	private Map<String, Person> persons;
 	private List<Work> works;
+	private List<PublicWork> publicWorks;
 	
 	@Before
 	public void setUp() {
@@ -37,6 +39,17 @@ public class AppTest {
 				new Work(persons.get("sebastien"), persons.get("sylvain"), 5),
 				new Work(persons.get("jeremie"), persons.get("sylvain"), 2)
 		);
+		
+		publicWorks = Lists.newArrayList(Lists.transform(works, new Function<Work, PublicWork>() {
+
+			public PublicWork apply(final Work _work) {
+				PublicWork publicWork = new PublicWork(_work.getWorker(), _work.getSuperviser(), _work.getTime());
+				return publicWork;
+			}
+			
+		}));
+		
+		
 		
 	}
 	
@@ -59,6 +72,68 @@ public class AppTest {
 		List<?> expectedResults = Lists.newArrayList(
 				Lists.newArrayList(persons.get("jeremie"), 8),
 				Lists.newArrayList(persons.get("sebastien"), 5)
+		);
+
+		assertEquals(2, results.size());
+		for (Result row : results) {
+			assertTrue(expectedResults.contains(row.getList()));
+			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));
+		}
+		
+		showExecutionTimeInfo(result.getTimings());
+		
+	}
+	
+	@Test
+	public void testPublicFields() throws QueryParseException, QueryExecutionException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, time "
+				+ "FROM net.sf.josql.PublicWork "
+				+ "WHERE time > 3");
+		
+		QueryResults result = q.execute(publicWorks);
+		
+		System.out.println(q.toString());
+		System.out.println(result.getResults());
+		
+		List<Result> results = result.asList();
+		
+		@SuppressWarnings("unchecked")
+		List<?> expectedResults = Lists.newArrayList(
+				Lists.newArrayList(persons.get("jeremie"), 8),
+				Lists.newArrayList(persons.get("sebastien"), 5)
+		);
+
+		assertEquals(2, results.size());
+		for (Result row : results) {
+			assertTrue(expectedResults.contains(row.getList()));
+			System.out.println(row.getList().get(0)+" - "+row.getList().get(1));
+		}
+		
+		showExecutionTimeInfo(result.getTimings());
+		
+	}
+	
+	@Test
+	public void testGroupByWithPublicFields() throws QueryParseException, QueryExecutionException {
+		
+		Query q = new Query();
+		q.parse("SELECT worker, @total_time "
+				+ "FROM net.sf.josql.PublicWork "
+				+ "GROUP BY worker "
+				+ "EXECUTE ON GROUP_BY_RESULTS sum(time) AS total_time");
+		
+		QueryResults result = q.execute(publicWorks);
+		
+		System.out.println(result.getResults());
+		
+		List<Result> results = result.asList();
+		
+		@SuppressWarnings("unchecked")
+		List<?> expectedResults = Lists.newArrayList(
+				Lists.newArrayList(persons.get("jeremie"), 10.0),
+				Lists.newArrayList(persons.get("sebastien"), 5.0)
 		);
 
 		assertEquals(2, results.size());
