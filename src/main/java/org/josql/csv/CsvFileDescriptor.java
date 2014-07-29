@@ -11,4 +11,6 @@ public interface CsvFileDescriptor {
 	
 	public List<String> getColumnMapping();
 	
+	public CsvOptions getOptions();
+	
 }

@@ -43,6 +43,10 @@ public class CsvTable {
 		this(_csvFile, _descriptor.getRowClass());
 		setConverters(_descriptor.getConverters());
 		setColumnMapping(_descriptor.getColumnMapping());
+		CsvOptions options = _descriptor.getOptions(); 
+		if (options != null) {
+			setOptions(options);
+		}
 		
 	}
 	

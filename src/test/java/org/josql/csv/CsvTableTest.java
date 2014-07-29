@@ -12,10 +12,13 @@ import java.util.List;
 import net.sf.josql.Person;
 
 import org.josql.Result;
+import org.josql.exceptions.CsvMappingNotFoundException;
 import org.josql.exceptions.QueryExecutionException;
 import org.josql.exceptions.QueryParseException;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class CsvTableTest {
 
@@ -65,7 +68,31 @@ public class CsvTableTest {
 	}
 	
 	@Test
-	public void restReadWithCustomSeparator() throws FileNotFoundException {
+	public void testReadWithFileDescriptor() throws FileNotFoundException, CsvMappingNotFoundException {
+		
+		List<String> columns = Lists.newArrayList("time", "worker", "superviser");
+		
+		FileDescriptor descriptor = new FileDescriptor(Work.class, columns);
+		
+		CsvTable table = new CsvTable(resource, descriptor);
+		
+		table.read();
+		
+		List<Object> objects = table.getObjects();
+		
+		assertEquals(3, objects.size());
+		
+		for(Object o : objects) {
+			
+			assertEquals(Work.class, o.getClass());
+			
+			System.out.println(o.toString());
+			
+		}
+	}
+	
+	@Test
+	public void testReadWithCustomSeparator() throws FileNotFoundException {
 		
 		CsvTable table = new CsvTable(resource4, Work.class);
 		
@@ -88,7 +115,33 @@ public class CsvTableTest {
 	}
 	
 	@Test
-	public void restReadWithoutColumnHeaders() throws FileNotFoundException {
+	public void testReadWithCustomSeparatorFromFileDescriptor() throws FileNotFoundException, CsvMappingNotFoundException {
+		
+		List<String> columns = Lists.newArrayList("time", "worker", "superviser");
+		CsvOptions options = new CsvOptions(',', CsvOptions.DEFAULT_CSV_QUOTE, CsvOptions.DEFAULT_CSV_FIRST_LINE);
+		
+		FileDescriptor descriptor = new FileDescriptor(Work.class, columns, options);
+		
+		CsvTable table = new CsvTable(resource4, descriptor);		
+		
+		table.read();
+		
+		List<Object> objects = table.getObjects();
+		
+		assertEquals(3, objects.size());
+		
+		for(Object o : objects) {
+			
+			assertEquals(Work.class, o.getClass());
+			
+			System.out.println(o.toString());
+			
+		}
+		
+	}
+	
+	@Test
+	public void testReadWithoutColumnHeaders() throws FileNotFoundException {
 		
 		CsvTable table = new CsvTable(resource5, Work.class);
 		
