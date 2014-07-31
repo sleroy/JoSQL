@@ -14,14 +14,16 @@
  */
 package org.josql.internal;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 import org.josql.Query;
 import org.josql.exceptions.QueryExecutionException;
 import org.josql.expressions.Expression;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class Grouper 
 {
@@ -30,7 +32,7 @@ public class Grouper
     private Query q = null;
     private int cs = -1;
 
-    public Grouper (Query q)
+    public Grouper (final Query q)
     {
 
 	this.q = q;
@@ -40,76 +42,91 @@ public class Grouper
     public List getExpressions ()
     {
 
-	return this.cols;
+	return cols;
 
     }
 
-    public void addExpression (Expression e) 
+    public void addExpression (final Expression e) 
     {
 
-	this.cols.add (e);
-	this.cs = cols.size ();
+	cols.add (e);
+	cs = cols.size ();
 
     }
 
-    public Map group (List   objs)
-	              throws QueryExecutionException
-    {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	public Map group (final List   objs) throws QueryExecutionException {
 
-	Map retVals = new HashMap ();
+    	Map retVals = Maps.newHashMap();
 
-	int s = objs.size (); 
-
-	List l = null;
-
-	for (int j = 0; j < s; j++)
-	{
-
-	    Object o = objs.get (j);
-
-	    this.q.setCurrentObject (o);
-
-	    l = new ArrayList ();
-
-	    // Get the values...
-	    for (int i = 0; i < this.cs; i++)
-	    {
-
-		Expression exp = (Expression) this.cols.get (i);
-
-		try
+    	int s = objs.size (); 
+    	
+	
+		for (int j = 0; j < s; j++)
 		{
+	
+		    Object o = objs.get(j);
+	
+		    q.setCurrentObject(o);
+	
+		    List l = Lists.newArrayList();
+	
+		    // Get the values...
+		    for (int i = 0; i < cs; i++) {
+	
+		    	Expression exp = (Expression) cols.get (i);
+	
+				try {
+					
+					Object value = exp.getValue (o, q);
+					
+					if (value != null) {
+						
+						l.add(value);
+						
+					}
+		
+				} catch (Exception e) {
+		
+				    throw new QueryExecutionException ("Unable to get group by value for expression: " +
+								       exp,
+								       e);
+		
+				}
+	
+		    }
 
-		    l.add (exp.getValue (o,
-					 this.q));
+		    if (l.isEmpty()) {
+		    	
+		    	continue;
+		    	
+		    }
+		    
+		    List v = null;
+		    
+		    for(Object ls : retVals.keySet()) {
 
-		} catch (Exception e) {
-
-		    throw new QueryExecutionException ("Unable to get group by value for expression: " +
-						       exp,
-						       e);
-
-		}
-
-	    }
-
-	    List v = (List) retVals.get (l);
-
-	    if (v == null)
-	    {
-
-		v = new ArrayList ();
-
-		retVals.put (l,
-			     v);
-
-	    }
-
-	    v.add (o);
-
-	}
-
-	return retVals;
+		    	if (l.equals(ls)) {
+		    		
+		    		v = (List) retVals.get(ls);
+		    		break;
+		    	}
+		    	
+		    }
+	
+		    if (v == null) {
+	
+		    	v = Lists.newArrayList();
+	
+		    	retVals.put (l, v);
+	
+		    }
+	
+		    v.add (o);
+	
+		}		
+		
+		return retVals;
 
     }
 
