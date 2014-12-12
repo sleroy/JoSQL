@@ -3,22 +3,21 @@ package org.josql.csv;
 import com.google.common.collect.Maps;
 import com.opencsv.CSVReader;
 import com.opencsv.bean.ColumnPositionMappingStrategy;
-import java.io.Closeable;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.io.IOUtils;
 import org.josql.exceptions.CsvMappingNotFoundException;
 import org.josql.exceptions.QueryParseException;
 import org.josql.utils.Timer;
 
-public class CsvTable implements Closeable {
+public class CsvTable {
 
-    private FileReader file;
+    private File file;
     private Class<?> pojoClass;
     private List<Object> objects;
     private Map<Class<?>, StringConverter<?>> converters;
@@ -28,7 +27,7 @@ public class CsvTable implements Closeable {
 
     private Timer readTimer;
 
-    public CsvTable(final FileReader _csvFile, final Class<?> _pojoClass) {
+    public CsvTable(final File _csvFile, final Class<?> _pojoClass) {
 
         file = _csvFile;
         pojoClass = _pojoClass;
@@ -38,7 +37,7 @@ public class CsvTable implements Closeable {
 
     }
 
-    public CsvTable(final FileReader _csvFile, final CsvFileDescriptor _descriptor) {
+    public CsvTable(final File _csvFile, final CsvFileDescriptor _descriptor) {
 
         this(_csvFile, _descriptor.getRowClass());
         setConverters(_descriptor.getConverters());
@@ -50,27 +49,15 @@ public class CsvTable implements Closeable {
 
     }
 
-    public CsvTable(final String _csvFile, final Class<?> _pojoClass) throws FileNotFoundException {
+    public CsvTable(final String _csvFile, final Class<?> _pojoClass) {
 
-        this(new FileReader(_csvFile), _pojoClass);
-
-    }
-
-    public CsvTable(final String _csvFile, final CsvFileDescriptor _descriptor) throws FileNotFoundException {
-
-        this(new FileReader(_csvFile), _descriptor);
+        this(new File(_csvFile), _pojoClass);
 
     }
 
-    public CsvTable(final File _csvFile, final Class<?> _pojoClass) throws FileNotFoundException {
+    public CsvTable(final String _csvFile, final CsvFileDescriptor _descriptor) {
 
-        this(new FileReader(_csvFile), _pojoClass);
-
-    }
-
-    public CsvTable(final File _csvFile, final CsvFileDescriptor _descriptor) throws FileNotFoundException {
-
-        this(new FileReader(_csvFile), _descriptor);
+        this(new File(_csvFile), _descriptor);
 
     }
 
@@ -153,12 +140,11 @@ public class CsvTable implements Closeable {
     /**
      * Read the CSV file and convert each row into a java object
      *
-     * @exception Throws an exception if the column mapping information has not
-     * been initialized
      * @return list of java objects generated from the CSV file
      * @throws CsvMappingNotFoundException
+     * @throws java.io.IOException
      */
-    public List<Object> read() throws CsvMappingNotFoundException {
+    public List<Object> read() throws CsvMappingNotFoundException, IOException {
 
         if (columnMapping.size() < 1) {
 
@@ -176,25 +162,37 @@ public class CsvTable implements Closeable {
      * @param _properties properties of the java class in the same order that
      * they appear in the CSV file
      * @return list of java objects generated from the CSV file
+     * @throws java.io.IOException
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public List<Object> read(final String... _properties) {
+    public List<Object> read(final String... _properties) throws IOException {
 
         readTimer = new Timer("time to read the file", null);
         readTimer.start();
 
         JoCsvToBean csv = new JoCsvToBean(converters);
 
-        CSVReader csvReader = new CSVReader(file, options.getSeparator(), options.getQuote(), options.getFirstLine());
+        FileReader fileReader = null;
+        try {
+            fileReader = new FileReader(file);
+            CSVReader csvReader = new CSVReader(fileReader, options.getSeparator(),
+                    options.getQuote(), options.getFirstLine());
+            ColumnPositionMappingStrategy strat = new ColumnPositionMappingStrategy();
+            strat.setColumnMapping(_properties);
+            strat.setType(pojoClass);
+            objects = csv.parse(strat, csvReader);
+        } finally {
+            IOUtils.closeQuietly(fileReader);
+            readTimer.stop();
+        }
 
-        ColumnPositionMappingStrategy strat = new ColumnPositionMappingStrategy();
-        strat.setColumnMapping(_properties);
-        strat.setType(pojoClass);
+        return getObjects();
+    }
 
-        objects = csv.parse(strat, csvReader);
-
-        readTimer.stop();
-
+    /**
+     * @return the objects that has been created from the CSV file
+     */
+    public List<Object> getObjects() {
         if (objects == null) {
             objects = Collections.emptyList();
         } else {
@@ -205,29 +203,7 @@ public class CsvTable implements Closeable {
                 }
             }
         }
-
-        return objects;
-
-    }
-
-    @Override
-    public void close() {
-        if (file != null) {
-            try {
-                file.close();
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-    }
-
-    /**
-     * @return the objects that has been created from the CSV file
-     */
-    public List<Object> getObjects() {
-
-        return objects;
-
+        return Collections.unmodifiableList(objects);
     }
 
     /**
