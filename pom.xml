@@ -228,7 +228,7 @@
 		<dependency>
 	      	<groupId>com.google.guava</groupId>
 	      	<artifactId>guava-gwt</artifactId>
-	      	<version>17.0</version>
+	      	<version>30.0-jre</version>
     	</dependency>
     	<dependency>
             <groupId>com.opencsv</groupId>
@@ -238,7 +238,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.4</version>
+            <version>2.7</version>
             <type>jar</type>
         </dependency>
 	</dependencies>
